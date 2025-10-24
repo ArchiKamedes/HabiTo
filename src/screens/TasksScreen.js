@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const StatsScreen = () => {
+const TasksScreen = () => { 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>StatsScreen</Text>
+      <Text style={styles.text}>TasksScreen</Text> 
     </View>
   );
 };
@@ -21,4 +21,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default StatsScreen;
+export default TasksScreen; 

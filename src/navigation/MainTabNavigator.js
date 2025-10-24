@@ -1,7 +1,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import HomeScreen from '../screens/HomeScreen';
-import StatsScreen from '../screens/StatsScreen';
+import TasksScreen from '../screens/TasksScreen';
+import HabitsScreen from '../screens/HabitsScreen';
+import PlantScreen from '../screens/PlantScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -16,14 +17,19 @@ const MainTabNavigator = () => {
       }}
     >
       <Tab.Screen 
-        name="Home" 
-        component={HomeScreen} 
-        options={{ title: 'Główna' }} 
+        name="Tasks" 
+        component={TasksScreen} 
+        options={{ title: 'Tasks' }} 
       />
       <Tab.Screen 
-        name="Stats" 
-        component={StatsScreen} 
-        options={{ title: 'Statystyki' }} 
+        name="Habits" 
+        component={HabitsScreen} 
+        options={{ title: 'Habits' }} 
+      />
+      <Tab.Screen 
+        name="Plant" 
+        component={PlantScreen} 
+        options={{ title: 'Plant' }} 
       />
       <Tab.Screen 
         name="Settings" 
