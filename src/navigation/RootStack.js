@@ -1,7 +1,8 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import MainTabNavigator from './MainTabNavigator';
-import FocusScreen from '../screens/FocusScreen'; // Stworzymy go za chwilę
+import FocusScreen from '../screens/FocusScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 const Stack = createStackNavigator();
 
@@ -17,6 +18,11 @@ const RootStack = () => {
         name="Focus"
         component={FocusScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ headerShown: false }} // Będzie miał nasz własny header
       />
     </Stack.Navigator>
   );
