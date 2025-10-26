@@ -12,7 +12,12 @@ const lightTheme = {
     primary: '#3391f2',    // Twój niebieski blask
     active: '#0d316f',       // Kolor aktywnej ikony
     inactive: '#878787',     // Kolor nieaktywnej ikony
-  }
+  },
+  spacing: {
+    s: 8,
+    m: 16, // <-- I że 'm' jest tutaj
+    l: 24,
+  },
 };
 
 // Stwórzmy też od razu tryb ciemny
@@ -25,7 +30,12 @@ const darkTheme = {
     primary: '#3391f2',    // Niebieski blask (zostaje ten sam)
     active: '#FFFFFF',       // Kolor aktywnej ikony (biały)
     inactive: '#878787',     // Kolor nieaktywnej ikony (zostaje)
-  }
+  },
+  spacing: {
+    s: 8,
+    m: 16, // <-- I że 'm' jest tutaj
+    l: 24,
+  },
 };
 
 // --- 2. Stworzenie Kontekstu ---
