@@ -8,24 +8,28 @@ import PlantScreen from '../screens/PlantScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import CustomHeader from '../navigation/CustomHeader';
 import HomeScreen from '../screens/HomeScreen';
+import { useTheme } from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator();
 
-const MainTabNavigator = () => {
+const MainTabNavigator = ({ navigation }) => {
+  const { theme } = useTheme(); 
+  const styles = getStyles(theme);
   
   return (
     <View style={{ flex: 1 }}>  
-      <CustomHeader />
+
+      <CustomHeader navigation={navigation} />
 
     <Tab.Navigator
-      initialRouteName="HomeScreen"
+      initialRouteName="Home"
       screenOptions={({ route }) => ({
         tabBarStyle: styles.myTabBar, 
         tabBarLabelStyle: styles.myLabel, 
         headerShown: false,
 
-        tabBarActiveTintColor: '#0d316f', 
-        tabBarInactiveTintColor: '#878787',   
+        tabBarActiveTintColor: theme.colors.active, 
+        tabBarInactiveTintColor: theme.colors.inactive, 
         
         tabBarIcon: ({ focused, color, size }) => {
 
@@ -51,6 +55,8 @@ const MainTabNavigator = () => {
       <Tab.Screen name="Habits" component={HabitsScreen} options={{ title: 'Habits' }} />
       <Tab.Screen name="Plant" component={PlantScreen} options={{ title: 'Plant' }} />
       <Tab.Screen name="Calendar" component={CalendarScreen} options={{ title: 'Calendar' }} />
+
+      <Tab.Screen name="Home" component={HomeScreen} options={{tabBarButton: () => null, tabBarItemStyle: { display: 'none' }}} />
     </Tab.Navigator>
     </View>
   );
@@ -60,19 +66,20 @@ const styles = StyleSheet.create({
   myTabBar: {
     position: 'absolute', 
 
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.card, 
+    borderColor: theme.colors.primary, 
+    borderTopColor: theme.colors.primary,
+
     height: 85,
     paddingBottom: 10,
     elevation: 5,
+
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-
     borderTopWidth: 4,
-    borderTopColor: '#3391f2', 
 
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: '#3391f2', 
   },
 
   myLabel: {

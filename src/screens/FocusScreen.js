@@ -1,7 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 const FocusScreen = () => {
+    const { theme } = useTheme(); 
+    const styles = getStyles(theme);
   return (
     <View style={styles.container}>
       <Text style={styles.text}>FocusScreen</Text>
@@ -14,7 +17,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff'
+    backgroundColor: theme.colors.background,
   },
   text: {
     fontSize: 24,

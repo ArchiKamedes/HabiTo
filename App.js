@@ -2,11 +2,10 @@ import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-
 import { auth } from './src/firebaseConfig'; // Ścieżka do skopiowanego pliku
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
-
 import RootStack from './src/navigation/RootStack';
+import { ThemeProvider } from './src/context/ThemeContext';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -34,10 +33,12 @@ export default function App() {
     );
   }
 
-  return (
-    <NavigationContainer>
-      <RootStack />
-    </NavigationContainer>
+return (
+    <ThemeProvider>
+      <NavigationContainer>
+        <RootStack />
+      </NavigationContainer>
+    </ThemeProvider>
   );
 }
 

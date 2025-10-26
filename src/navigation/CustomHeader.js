@@ -3,25 +3,32 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigationState, useRoute } from '@react-navigation/native';
-import SettingsScreen from '../screens/SettingsScreen';
-import HomeScreen from '../screens/HomeScreen';
+import { useTheme } from '../context/ThemeContext';
 
 const CustomHeader = ({ navigation }) => {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
-  const route = useRoute();
   const rootState = useNavigationState(state => state);
 
-  const isSettingsActive = rootState.routes[rootState.index].name === 'Settings';
-  const isHomeActive = route.name === 'Home';
+  const rootRoute = rootState.routes[rootState.index];
+  const isSettingsActive = rootRoute.name === 'Settings';
 
-  const activeColor = '#0d316f'; 
-  const inactiveColor = '#878787'; 
+  let isHomeActive = false;
+  if (rootRoute.name === 'MainApp' && rootRoute.state) {
+    const tabState = rootRoute.state;
+    const activeTabName = tabState.routes[tabState.index].name;
+    isHomeActive = activeTabName === 'Home';
+  }
+
+  const activeColor = theme.colors.active; 
+  const inactiveColor = theme.colors.inactive;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       
 
-      <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Home')} >
+      <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('MainApp', { screen: 'Home' })}>
       <FontAwesome5 name="home" size={26} color={isHomeActive ? activeColor : inactiveColor} />
       </TouchableOpacity>
       

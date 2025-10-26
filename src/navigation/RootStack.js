@@ -22,7 +22,7 @@ const RootStack = () => {
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}
-        options={{ headerShown: false }} // Będzie miał nasz własny header
+        options={{ headerShown: false }} 
       />
     </Stack.Navigator>
   );
