@@ -62,7 +62,7 @@ const MainTabNavigator = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (theme) => StyleSheet.create({
   myTabBar: {
     position: 'absolute', 
 

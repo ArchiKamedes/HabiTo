@@ -12,15 +12,16 @@ const HomeScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.background, 
   },
   text: {
     fontSize: 24,
+    color: theme.colors.text, 
   },
 });
 

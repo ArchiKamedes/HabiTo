@@ -39,7 +39,7 @@ const CustomHeader = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (theme) => StyleSheet.create({
   container: {
     position: 'absolute', 
     top: 0,
@@ -47,18 +47,16 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1, 
 
-    backgroundColor: 'white',
-    height: 110, 
-    
+    backgroundColor: theme.colors.card,   
+    borderColor: theme.colors.primary,      
 
+    height: 110, 
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-
     borderBottomWidth: 3, 
-    borderTopColor: 'transparent',
+    borderTopColor: 'transparent', 
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: '#3391f2', 
 
     flexDirection: 'row',
     justifyContent: 'space-between', 
