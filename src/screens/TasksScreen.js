@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, FlatList, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, FlatList, StyleSheet, ScrollView, TouchableOpacity, Pressable } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -8,13 +8,15 @@ const TasksScreen = () => {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme(); 
   const styles = getStyles(theme);
+  const currentDate = new Date();
+  const formattedDate = currentDate.toLocaleDateString('pl-PL',{ day: 'numeric', month: 'numeric', year: 'numeric'});
 
   return (
     <ScrollView 
       style={styles.mainContainer}
     
       contentContainerStyle={{ 
-          paddingTop: insets.top + 120, 
+          paddingTop: insets.top + 80, 
           paddingBottom: insets.bottom + 100 
       }}
     >
@@ -22,9 +24,11 @@ const TasksScreen = () => {
         <View style={styles.titleTaskContainer}>
           <Text style={styles.titleTaskText}>Zadania</Text>
         </View>
-        <View style={styles.taskAddContainer}>
-          <View style={styles.taskAddShape}><FontAwesome5 name='plus' size={24} color={'white'} /></View>
-        </View>
+        <Pressable style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}>
+          <View style={styles.taskAddShape}> 
+            <FontAwesome5 name='plus' size={24} color={theme.colors.plus} /> 
+          </View>
+        </Pressable>
       </View>
 
       {/* Folders Row*/}
@@ -32,19 +36,21 @@ const TasksScreen = () => {
         <View style={styles.foldersChoiceContainer}>
           <Text style={styles.placeholderText}>Folders Choice</Text>
         </View>
-        <View style={styles.foldersAddContainer}>
-          <Text style={styles.placeholderText}>Add Folder</Text>
-        </View>
+        <Pressable style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}>
+          <View style={styles.folderAddShape}> 
+            <FontAwesome5 name='plus' size={24} color={theme.colors.plus} /> 
+          </View>
+        </Pressable>
       </View>
 
       {/*Days Row */}
       <View style={styles.daysContainer}>
         <View style={styles.titleTodayContainer}>
-          <Text style={styles.placeholderText}>Przyszłe</Text>
+          <Text style={styles.SubTytlesText}>Dzisiejsze</Text>
         </View>
-        {/* days-choice' and 'days-date'*/}
+        {/*today-date*/}
         <View style={styles.daysDateContainer}>
-          <Text style={styles.placeholderText}>Days/Date Area</Text>
+          <Text style={styles.dateText}>{formattedDate}</Text>
         </View>
       </View>
 
@@ -55,7 +61,7 @@ const TasksScreen = () => {
 
       {/*Title Future */}
       <View style={styles.titleFutureContainer}>
-        <Text style={styles.placeholderText}>Title Future</Text>
+        <Text style={styles.SubTytlesText}>Przyszłe</Text>
       </View>
 
       {/*Tasks Future Area */}
@@ -76,7 +82,6 @@ mainContainer: {
 
   topRowContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center', 
     marginBottom: theme.spacing.m,
   },
@@ -94,16 +99,10 @@ mainContainer: {
   },
  
   titleTaskContainer: {
-    flex: 1, 
     padding: theme.spacing.s,
-    borderWidth: 1,
-    borderColor: 'purple',
-    marginRight: theme.spacing.s,
   },
   taskAddContainer: {
     padding: theme.spacing.s,
-    borderWidth: 1,
-    borderColor: 'purple',
   },
   foldersChoiceContainer: {
     flex: 1, 
@@ -114,42 +113,39 @@ mainContainer: {
   },
   foldersAddContainer: {
     padding: theme.spacing.s,
-    borderWidth: 1,
-    borderColor: 'black',
   },
   titleTodayContainer: {
     padding: theme.spacing.s,
-    borderWidth: 1,
-    borderColor: 'black',
   },
   
   daysDateContainer: {
     flex: 1, 
     padding: theme.spacing.s,
-    borderWidth: 1,
-    borderColor: 'black',
     marginLeft: theme.spacing.s,
   },
   tasksTodayContainer: {
-    padding: theme.spacing.l,
-    borderWidth: 2,
-    borderColor: 'lightgreen',
+    padding: theme.spacing.m,
+    backgroundColor: theme.colors.card,
+    borderRadius: 20,
     marginBottom: theme.spacing.l,
-    minHeight: 150, 
+    marginTop: theme.spacing.n,
+    minHeight: 200, 
+    elevation: 3,
+
   },
   titleFutureContainer: {
     padding: theme.spacing.s,
-    borderWidth: 1,
-    borderColor: 'black',
     marginBottom: theme.spacing.s,
     alignSelf: 'flex-start', 
   },
   tasksFutureContainer: {
-    padding: theme.spacing.l,
-    borderWidth: 2,
-    borderColor: 'lightgreen',
-    minHeight: 150, 
+    padding: theme.spacing.m,
+    backgroundColor: theme.colors.card,
+    borderRadius: 20,
+    minHeight: 200, 
     marginBottom: theme.spacing.l, 
+    marginTop: theme.spacing.n,
+    elevation: 3,
   },
 
   //SHAPES
@@ -160,16 +156,38 @@ mainContainer: {
   backgroundColor: theme.colors.active,
   justifyContent: 'center',
   alignItems: 'center',
+  elevation: 10,
+  },
+
+  folderAddShape:{
+  width: 75,
+  height: 45,
+  borderRadius: 20,
+  backgroundColor: theme.colors.active,
+  justifyContent: 'center',
+  alignItems: 'center',
+  elevation: 10,
   },
 
   placeholderText: {
-      color: theme.colors.inactive, 
-      fontSize: 12,
+    color: theme.colors.text,  
+    fontSize: 12,
   },
   titleTaskText:{
-    color: theme.colors.inactive, 
+    color: theme.colors.text, 
     fontSize: 32,
-  }
+    fontFamily: 'TitilliumWeb_400Regular',
+  },
+  SubTytlesText:{
+    color: theme.colors.text,  
+    fontSize: 22,
+    fontFamily: 'TitilliumWeb_400Regular',
+  },
+  dateText:{
+    color: theme.colors.text, 
+    fontSize: 22,
+    fontFamily: 'TitilliumWeb_700Bold,',
+  },
 });
 
 export default TasksScreen; 
