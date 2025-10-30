@@ -17,11 +17,11 @@ const getStyles = (theme) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background, // ✅ Correctly uses theme
+    backgroundColor: theme.colors.background, 
   },
   text: {
     fontSize: 24,
-    color: theme.colors.text, // ✅ Correctly uses theme
+    color: theme.colors.text, 
   },
 });
 
