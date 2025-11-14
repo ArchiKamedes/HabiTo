@@ -4,7 +4,8 @@ import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-ico
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 
-const TasksScreen = () => { 
+
+const TasksScreen = ({ navigation }) => { 
   const insets = useSafeAreaInsets();
   const { theme } = useTheme(); 
   const styles = getStyles(theme);
@@ -24,7 +25,9 @@ const TasksScreen = () => {
         <View style={styles.titleTaskContainer}>
           <Text style={styles.titleTaskText}>Zadania</Text>
         </View>
-        <Pressable style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}>
+        <Pressable 
+          style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}
+          onPress={() => navigation.getParent().navigate('TaskAdd')} >
           <View style={styles.taskAddShape}> 
             <FontAwesome5 name='plus' size={24} color={theme.colors.plus} /> 
           </View>
