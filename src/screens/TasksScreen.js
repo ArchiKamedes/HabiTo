@@ -1,8 +1,12 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, ScrollView, TouchableOpacity, Pressable } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import TaskItem from '../components/TaskItem';
+import { db, auth } from '../firebaseConfig';
+import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 
 
 const TasksScreen = ({ navigation }) => { 
@@ -11,6 +15,66 @@ const TasksScreen = ({ navigation }) => {
   const styles = getStyles(theme);
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString('pl-PL',{ day: 'numeric', month: 'numeric', year: 'numeric'});
+  const user = auth.currentUser;
+
+  const [tasks, setTasks] = useState([]); 
+
+  useEffect(() => {
+    if (!user) return; 
+
+    const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
+    const q = query(tasksCollectionRef, orderBy('createdAt', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const tasksData = [];
+      querySnapshot.forEach((doc) => {
+        tasksData.push({ ...doc.data(), id: doc.id });
+      });
+      setTasks(tasksData); 
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // --- 3. Funkcja do zaznaczania GŁÓWNEGO zadania (UPDATE) ---
+  const handleToggleComplete = async (taskId, currentStatus) => {
+    if (!user) return;
+    const taskDocRef = doc(db, 'users', user.uid, 'tasks', taskId);
+    try {
+      await updateDoc(taskDocRef, {
+        completed: !currentStatus // Odwracamy obecny status
+      });
+    } catch (error) {
+      console.error("Błąd podczas aktualizacji zadania: ", error);
+    }
+  };
+
+  // --- 4. Funkcja do zaznaczania PODZADANIA (UPDATE) ---
+  const handleToggleSubtask = async (taskId, subtaskIndex, currentStatus) => {
+    if (!user) return;
+    
+    // Znajdź zadanie w stanie
+    const taskToUpdate = tasks.find(t => t.id === taskId);
+    if (!taskToUpdate) return;
+
+    // Stwórz nową, zaktualizowaną tablicę podzadań
+    const newSubtasks = taskToUpdate.subtasks.map((subtask, index) => {
+      if (index === subtaskIndex) {
+        return { ...subtask, completed: !currentStatus };
+      }
+      return subtask;
+    });
+
+    // Zaktualizuj dokument w Firebase
+    const taskDocRef = doc(db, 'users', user.uid, 'tasks', taskId);
+    try {
+      await updateDoc(taskDocRef, {
+        subtasks: newSubtasks // Nadpisz tablicę podzadań nową wersją
+      });
+    } catch (error) {
+      console.error("Błąd podczas aktualizacji podzadania: ", error);
+    }
+  };
 
   return (
     <ScrollView 
@@ -58,8 +122,24 @@ const TasksScreen = ({ navigation }) => {
       </View>
 
       {/*Tasks Today Area */}
-      <View style={styles.tasksTodayContainer}>
-        <Text style={styles.placeholderText}>Tasks Today List Area</Text>
+     <View style={styles.tasksTodayContainer}>
+        {/* 👇 5. UŻYWAMY <FlatList> Z NOWYM KOMPONENTEM */}
+        <FlatList
+          data={tasks}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TaskItem 
+              item={item}
+              onToggleComplete={handleToggleComplete}
+              onToggleSubtask={handleToggleSubtask}
+            />
+          )}
+          ListEmptyComponent={
+            <Text style={styles.emptyListText}>Nie masz jeszcze żadnych zadań!</Text>
+          }
+          // Wyłączamy przewijanie FlatList, bo mamy już nadrzędny ScrollView
+          scrollEnabled={false}
+        />
       </View>
 
       {/*Title Future */}

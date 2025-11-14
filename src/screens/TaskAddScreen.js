@@ -1,26 +1,23 @@
 import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, TextInput, TouchableOpacity, 
-  Platform, ScrollView, FlatList, Pressable // Dodajemy ScrollView, FlatList, Pressable
-} from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView, FlatList, Pressable} from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { FontAwesome5, Ionicons } from '@expo/vector-icons'; // Dodajemy ikony
-import ModalDropdown from 'react-native-modal-dropdown'; // Import dropdownu
+import { FontAwesome5, Ionicons } from '@expo/vector-icons'; 
+import ModalDropdown from 'react-native-modal-dropdown'; 
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../firebaseConfig';
 
 const TaskAddScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
 
-  // --- Stany (nasze "szufladki") ---
   const [taskName, setTaskName] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  // 👇 NOWE STANY 👇
   const [icon, setIcon] = useState('briefcase'); // Domyślna ikona (z FontAwesome5)
   const [color, setColor] = useState(theme.colors.primary); // Domyślny kolor
   const [folder, setFolder] = useState('Studia'); // Domyślny folder
@@ -51,20 +48,47 @@ const TaskAddScreen = ({ navigation }) => {
     setNewSubtaskText(''); // Wyczyść input
   };
 
-  // Funkcja "Utwórz" (na razie tylko konsola)
-  const handleCreateTask = () => {
+  // Funkcja "Utwórz" 
+  const handleCreateTask = async () => {
+    const user = auth.currentUser; // 1. Pobierz zalogowanego użytkownika
+
+    // 2. Sprawdź, czy użytkownik jest zalogowany i czy nazwa zadania nie jest pusta
+    if (!user || taskName.trim() === '') {
+      console.log("Użytkownik nie jest zalogowany lub nazwa zadania jest pusta.");
+      return; // Zatrzymaj funkcję
+    }
+
+    // 3. Stwórz obiekt zadania (masz to już zrobione)
     const newTask = {
-      taskName,
-      icon,
-      color,
-      folder,
-      subtasks,
-      dueDate: date,
-      reminder,
-      priority,
+      name: taskName, // Użyj 'name' zamiast 'taskName' dla spójności z modelem
+      icon: icon,
+      color: color,
+      folder: folder, // W przyszłości to będzie ID folderu
+      subtasks: subtasks,
+      dueDate: date, // Przechowuje całą datę i godzinę
+      reminder: reminder,
+      priority: priority,
+      completed: false, // Domyślnie nowe zadanie jest nieukończone
+      createdAt: serverTimestamp(), // Użyj daty serwera Firebase
+      userId: user.uid // Dołącz ID użytkownika do zadania
     };
-    console.log("NOWE ZADANIE:", JSON.stringify(newTask, null, 2));
-    // navigation.goBack(); // W przyszłości zamknie modal
+
+    try {
+      // 4. Stwórz referencję do podkolekcji 'tasks' tego użytkownika
+      const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
+      
+      // 5. Dodaj nowy dokument (zadanie) do tej podkolekcji
+      await addDoc(tasksCollectionRef, newTask);
+      
+      console.log("ZADANIE DODANE DO FIREBASE!");
+
+      // 6. Zamknij okno (modal) po sukcesie
+      navigation.goBack(); 
+
+    } catch (error) {
+      console.error("Błąd podczas dodawania zadania: ", error);
+      // Tutaj możesz pokazać użytkownikowi jakiś alert o błędzie
+    }
   };
 
   const priorities = [
