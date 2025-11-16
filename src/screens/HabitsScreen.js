@@ -1,15 +1,20 @@
-import React from 'react';
-import { View, Text, TextInput, FlatList, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, FlatList, StyleSheet, ScrollView, TouchableOpacity, Pressable} from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import AddFolderModal from '../components/AddFolderModal';
+import { db, auth } from '../firebaseConfig';
+import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 
-const HabitsScreen = () => {
-const insets = useSafeAreaInsets();
+const HabitsScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme(); 
   const styles = getStyles(theme);
   const currentDate = new Date();
+  const user = auth.currentUser;
   const formattedDate = currentDate.toLocaleDateString('pl-PL',{ day: 'numeric', month: 'numeric', year: 'numeric'});
+  const [isFolderModalVisible, setIsFolderModalVisible] = useState(false);
 
   return (
     <ScrollView 
@@ -24,9 +29,13 @@ const insets = useSafeAreaInsets();
         <View style={styles.titleHabitContainer}>
           <Text style={styles.titleHabitText}>Nawyki</Text>
         </View>
-        <View style={styles.HabitAddContainer}>
-          <View style={styles.HabitAddShape}><FontAwesome5 name='plus' size={24} color={theme.colors.plus} /></View>
-        </View>
+         <Pressable 
+                  style={({ pressed }) => [styles.HabitAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}
+                  onPress={() => navigation.getParent().navigate('HabitAdd')} >
+                  <View style={styles.HabitAddShape}> 
+                    <FontAwesome5 name='plus' size={24} color={theme.colors.plus} /> 
+                  </View>
+                </Pressable>
       </View>
 
       {/* Folders Row*/}
@@ -34,9 +43,11 @@ const insets = useSafeAreaInsets();
         <View style={styles.foldersChoiceContainer}>
           <Text style={styles.placeholderText}>Folders Choice</Text>
         </View>
-        <View style={styles.foldersAddContainer}>
-          <View style={styles.folderAddShape}><FontAwesome5 name='plus' size={24} color={theme.colors.plus} /></View>
-        </View>
+        <Pressable style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}onPress={() => setIsFolderModalVisible(true)}>
+          <View style={styles.folderAddShape}> 
+            <FontAwesome5 name='plus' size={24} color={theme.colors.primary} /> 
+          </View>
+        </Pressable>
       </View>
 
       {/*Days Row */}
@@ -57,7 +68,7 @@ const insets = useSafeAreaInsets();
 
       {/*Title Future */}
       <View style={styles.titleFutureContainer}>
-        <Text style={styles.SubTytlesText}>Przyszłe</Text>
+        <Text style={styles.SubTytlesText}>Jutrzejsze</Text>
       </View>
 
       {/*Habit Future Area */}
@@ -65,6 +76,8 @@ const insets = useSafeAreaInsets();
         <Text style={styles.placeholderText}>Tasks Future List Area</Text>
       </View>
 
+      <AddFolderModal visible={isFolderModalVisible} onClose={() => setIsFolderModalVisible(false)} defaultFolderType="habit"/>
+    
     </ScrollView> 
   );
 };

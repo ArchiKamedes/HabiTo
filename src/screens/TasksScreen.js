@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, ScrollView, TouchableOpacity, Pressable } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import TaskItem from '../components/TaskItem';
+import AddFolderModal from '../components/AddFolderModal';
 import { db, auth } from '../firebaseConfig';
 import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 
@@ -16,8 +17,39 @@ const TasksScreen = ({ navigation }) => {
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString('pl-PL',{ day: 'numeric', month: 'numeric', year: 'numeric'});
   const user = auth.currentUser;
-
+  const [isFolderModalVisible, setIsFolderModalVisible] = useState(false);
   const [tasks, setTasks] = useState([]); 
+  const [subtasks, setSubtasks] = useState([]);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const todayTasks = useMemo(() => {
+    return tasks.filter(task => {
+      // Upewnij się, że zadanie ma datę i jest to poprawny obiekt Timestamp
+      if (task.dueDate && typeof task.dueDate.toDate === 'function') {
+        const taskDate = task.dueDate.toDate();
+        taskDate.setHours(0, 0, 0, 0); // Resetuj godzinę zadania do północy
+        
+        // Porównaj zresetowane daty
+        return taskDate.getTime() === today.getTime();
+      }
+      return false; // Pomiń zadania bez daty
+    });
+  }, [tasks]); // Uruchom filtrację ponownie tylko, gdy zmieni się lista 'tasks'
+
+  // 3. Stwórz przefiltrowaną listę zadań NA PRZYSZŁOŚĆ (dla 'tasks-future-container')
+  const futureTasks = useMemo(() => {
+    return tasks.filter(task => {
+      if (task.dueDate && typeof task.dueDate.toDate === 'function') {
+        const taskDate = task.dueDate.toDate();
+        taskDate.setHours(0, 0, 0, 0);
+        
+        // Zwróć tylko te, które są PÓŹNIEJSZE niż dzisiaj
+        return taskDate.getTime() > today.getTime();
+      }
+      return false;
+    });
+  }, [tasks]);
 
   useEffect(() => {
     if (!user) return; 
@@ -103,9 +135,9 @@ const TasksScreen = ({ navigation }) => {
         <View style={styles.foldersChoiceContainer}>
           <Text style={styles.placeholderText}>Folders Choice</Text>
         </View>
-        <Pressable style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}>
+        <Pressable style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}onPress={() => setIsFolderModalVisible(true)}>
           <View style={styles.folderAddShape}> 
-            <FontAwesome5 name='plus' size={24} color={theme.colors.plus} /> 
+            <FontAwesome5 name='plus' size={24} color={theme.colors.primary} /> 
           </View>
         </Pressable>
       </View>
@@ -123,9 +155,8 @@ const TasksScreen = ({ navigation }) => {
 
       {/*Tasks Today Area */}
      <View style={styles.tasksTodayContainer}>
-        {/* 👇 5. UŻYWAMY <FlatList> Z NOWYM KOMPONENTEM */}
         <FlatList
-          data={tasks}
+          data={todayTasks}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <TaskItem 
@@ -135,9 +166,8 @@ const TasksScreen = ({ navigation }) => {
             />
           )}
           ListEmptyComponent={
-            <Text style={styles.emptyListText}>Nie masz jeszcze żadnych zadań!</Text>
+            <Text style={styles.emptyListText}>Nie masz żadnych zadań na dziś!</Text>
           }
-          // Wyłączamy przewijanie FlatList, bo mamy już nadrzędny ScrollView
           scrollEnabled={false}
         />
       </View>
@@ -149,8 +179,24 @@ const TasksScreen = ({ navigation }) => {
 
       {/*Tasks Future Area */}
       <View style={styles.tasksFutureContainer}>
-        <Text style={styles.placeholderText}>Tasks Future List Area</Text>
+         <FlatList
+          data={futureTasks}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TaskItem
+              item={item}
+              onToggleComplete={handleToggleComplete}
+              onToggleSubtask={handleToggleSubtask}
+            />
+          )}
+          ListEmptyComponent={
+            <Text style={styles.emptyListText}>Nie masz jeszcze żadnych zadań!</Text>
+          }
+          scrollEnabled={false}
+        />
       </View>
+
+      <AddFolderModal visible={isFolderModalVisible} onClose={() => setIsFolderModalVisible(false)} defaultFolderType="task"/>
 
     </ScrollView> 
   );

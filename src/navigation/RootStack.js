@@ -4,6 +4,7 @@ import MainTabNavigator from './MainTabNavigator';
 import FocusScreen from '../screens/FocusScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import TaskAddScreen from '../screens/TaskAddScreen';
+import HabitAddScreen from '../screens/HabitAddScreen';
 
 const Stack = createStackNavigator();
 
@@ -29,7 +30,13 @@ const RootStack = () => {
       <Stack.Screen 
         name="TaskAdd" 
         component={TaskAddScreen}
-        options={{ presentation: 'modal' }} // To sprawi, że wysunie się od dołu
+        options={{ presentation: 'modal' }} 
+      />
+
+      <Stack.Screen 
+        name="HabitAdd" 
+        component={HabitAddScreen}
+        options={{ presentation: 'modal' }} 
       />
     </Stack.Navigator>
   );
