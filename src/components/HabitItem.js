@@ -62,7 +62,7 @@ const HabitItem = ({ item, onToggle }) => {
         {/* Tytuł nawyku */}
         <Text style={[styles.title, item.isCompleted && styles.titleCompleted]}>
           {item.habitName}
-        </Texts>
+        </Text>
 
         {/* Dni Tygodnia (zgodnie z projektem) */}
         <WeekdayDisplay />
