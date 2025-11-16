@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, StyleSheet, TextInput, TouchableOpacity, 
-  Platform, ScrollView, Pressable
-} from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView, Pressable} from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import ModalDropdown from 'react-native-modal-dropdown';
-// Import LinearGradient został USUNIĘTY
+import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { db, auth } from '../firebaseConfig';
 
-// Definicja dni tygodnia
 const WEEKDAYS = [
   { short: 'Pn', long: 'Poniedziałek', id: 1 },
   { short: 'Wt', long: 'Wtorek', id: 2 },
@@ -26,7 +23,6 @@ const HabitAddScreen = ({ navigation }) => {
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
 
-  // --- Stany ---
   const [habitName, setHabitName] = useState('');
   const [icon, setIcon] = useState('briefcase');
   const [color, setColor] = useState(theme.colors.primary);
@@ -37,11 +33,12 @@ const HabitAddScreen = ({ navigation }) => {
   const [selectedWeekdays, setSelectedWeekdays] = useState([]);
   const [timeMode, setTimeMode] = useState('Taka sama godzina');
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [timePickerTarget, setTimePickerTarget] = useState(null);
   const [sameTimes, setSameTimes] = useState([new Date()]);
   const [differentTimes, setDifferentTimes] = useState({});
-
-  // --- Efekty (logika warunkowa) ---
+  const [date, setDate] = useState(new Date());
+  
   useEffect(() => {
     if (repeatMode !== 'Wybierz dni') {
       setTimeMode('Taka sama godzina');
@@ -68,7 +65,6 @@ const HabitAddScreen = ({ navigation }) => {
     }
   }, [timesPerDay, repeatMode, selectedWeekdays]);
 
-  // --- Funkcje obsługi ---
   const toggleWeekday = (dayId) => {
     const isSelected = selectedWeekdays.includes(dayId);
     let newSelectedDays = [];
@@ -109,8 +105,25 @@ const HabitAddScreen = ({ navigation }) => {
     }
   };
 
-  const handleCreateHabit = () => {
+  const handleCreateHabit = async () => {
+    const user = auth.currentUser; 
+
+    if (!user || habitName.trim() === '') {
+      console.log("Użytkownik nie jest zalogowany lub nazwa zadania jest pusta.");
+      return; 
+    }
+
     const numTimes = parseInt(timesPerDay) || 1;
+
+    let notificationTimestamps;
+    if (timeMode === 'Taka sama godzina') {
+      notificationTimestamps = sameTimes.map(date => Timestamp.fromDate(date));
+    } else {
+      notificationTimestamps = {};
+      Object.keys(differentTimes).forEach(dayId => {
+        notificationTimestamps[dayId] = differentTimes[dayId].map(date => Timestamp.fromDate(date));
+      });
+    }
     const newHabit = {
       habitName, icon, color, folder,
       timesPerDay: numTimes,
@@ -119,9 +132,24 @@ const HabitAddScreen = ({ navigation }) => {
       selectedWeekdays: repeatMode === 'Wybierz dni' ? selectedWeekdays : null,
       timeMode,
       notificationTimes: timeMode === 'Taka sama godzina' ? sameTimes : differentTimes,
+      completed: false, 
+      createdAt: serverTimestamp(),
+      userId: user.uid 
     };
     console.log("NOWY NAWYK:", JSON.stringify(newHabit, null, 2));
-    // navigation.goBack();
+    
+     try {
+          const habitsCollectionRef = collection(db, 'users', user.uid, 'habits');
+          
+          await addDoc(habitsCollectionRef, newHabit);
+          
+          console.log("Nawyk DODANE DO FIREBASE!");
+    
+          navigation.goBack(); 
+    
+        } catch (error) {
+          console.error("Błąd podczas dodawania nawyku: ", error);
+        }
   };
 
   const renderTimePickers = (dayId) => {
@@ -144,7 +172,6 @@ const HabitAddScreen = ({ navigation }) => {
   return (
     <ScrollView style={[styles.screenContainer]}>
       
-      {/* Nagłówek (Zwykły View) */}
       <View style={styles.header}>
         <TextInput
           style={styles.titleInput}
@@ -158,10 +185,8 @@ const HabitAddScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Kontener formularza */}
       <View style={styles.formContainer}>
-        
-        {/* Ikona (Zaślepka) */}
+      
         <TouchableOpacity style={styles.row}>
           <View style={[styles.iconCircle, { backgroundColor: theme.colors.border }]}>
             <FontAwesome5 name={icon} size={24} color={theme.colors.text} />
@@ -170,14 +195,12 @@ const HabitAddScreen = ({ navigation }) => {
           <Text style={styles.valueText}>{icon}</Text>
         </TouchableOpacity>
 
-        {/* Kolor (Zaślepka) */}
         <TouchableOpacity style={styles.row}>
           <View style={[styles.colorCircle, { backgroundColor: color }]} />
           <Text style={styles.label}>Kolor</Text>
           <Text style={styles.valueText}>Wybierz</Text>
         </TouchableOpacity>
 
-        {/* Folder (Dropdown) */}
         <ModalDropdown
           options={['Studia', 'Praca', 'Dom']}
           defaultIndex={0}
@@ -193,7 +216,6 @@ const HabitAddScreen = ({ navigation }) => {
           </View>
         </ModalDropdown>
 
-        {/* Wykonuj (Ile razy) */}
         <View style={styles.row}>
           <Ionicons name="return-down-back-outline" size={24} color={theme.colors.text} style={styles.icon} />
           <Text style={styles.label}>Wykonuj</Text>
@@ -207,7 +229,6 @@ const HabitAddScreen = ({ navigation }) => {
           <Text style={styles.labelSuffix}>razy w ciągu dnia</Text>
         </View>
 
-        {/* Powtarzaj (Dropdown) */}
         <ModalDropdown
           options={['Codziennie', 'Co X dni', 'Wybierz dni']}
           defaultIndex={0}
@@ -315,6 +336,40 @@ const HabitAddScreen = ({ navigation }) => {
               (timePickerTarget.day === null ? sameTimes[timePickerTarget.index] : differentTimes[timePickerTarget.day][timePickerTarget.index]) 
               : new Date()
           }
+          mode={'time'}
+          display="default"
+          onChange={onTimeChange}
+        />
+      )}
+
+            {Platform.OS === 'ios' && showDatePicker && (
+        <DateTimePicker
+          value={date}
+          mode={'date'}
+          display="spinner"
+          onChange={onDateChange}
+        />
+      )}
+      {Platform.OS === 'ios' && showTimePicker && (
+        <DateTimePicker
+          value={date}
+          mode={'time'}
+          display="spinner"
+          onChange={onTimeChange}
+        />
+      )}
+      {/* --- Pickery (Android) --- */}
+      {Platform.OS === 'android' && showDatePicker && (
+        <DateTimePicker
+          value={date}
+          mode={'date'}
+          display="default"
+          onChange={onDateChange}
+        />
+      )}
+      {Platform.OS === 'android' && showTimePicker && (
+        <DateTimePicker
+          value={date}
           mode={'time'}
           display="default"
           onChange={onTimeChange}
