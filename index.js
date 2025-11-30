@@ -1,3 +1,23 @@
+global.Buffer = require('buffer').Buffer;
+
+const { TextEncoder, TextDecoder } = require('text-encoding');
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+import { decode, encode } from 'base-64';
+if (!global.btoa) {  
+    global.btoa = encode; 
+}
+if (!global.atob) { 
+    global.atob = decode; 
+}
+
+global.window = global;
+global.document = {
+    createElement: () => {}, // Pusta funkcja, żeby nie wyrzucało błędu
+    createElementNS: () => {},
+};
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';
