@@ -4,12 +4,10 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 
-// Odbieramy 'item' (dane zadania) oraz funkcje do obsługi
 const TaskItem = ({ item, onToggleComplete, onToggleSubtask }) => {
   const { theme } = useTheme();
   const styles = getStyles(theme);
 
-  // Funkcja pomocnicza do pobrania koloru priorytetu
   const getPriorityColor = (level) => {
     if (level === 2) return '#FFA500'; // Średni
     if (level === 3) return '#FF4500'; // Wysoki
@@ -17,34 +15,27 @@ const TaskItem = ({ item, onToggleComplete, onToggleSubtask }) => {
     return theme.colors.inactive; // Domyślny (Niski)
   };
 
-  // Funkcja formatująca datę (jeśli istnieje)
   const formatDate = (date) => {
     if (!date) return null;
     return date.toDate().toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
-  // Funkcja formatująca godzinę (jeśli istnieje)
   const formatTime = (date) => {
     if (!date) return null;
     return date.toDate().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
-    // Główny kontener z ramką w kolorze motywu
     <View style={styles.container}>
       
-      {/* GÓRNY WIERSZ (GŁÓWNE ZADANIE) */}
       <View style={styles.mainRow}>
         
-        {/* Kółko z ikoną */}
         <View style={[styles.iconCircle, { backgroundColor: item.color || theme.colors.primary }]}>
           <FontAwesome5 name={item.icon || 'briefcase'} size={20} color="white" />
         </View>
 
-        {/* Tytuł zadania */}
         <Text style={[styles.title, item.completed && styles.titleCompleted]}>{item.name}</Text>
 
-        {/* Informacje (Data, Godzina) */}
         <View style={styles.detailsContainer}>
           {item.dueDate && (
             <View style={styles.detailItem}>
@@ -52,7 +43,7 @@ const TaskItem = ({ item, onToggleComplete, onToggleSubtask }) => {
               <Text style={styles.detailText}>{formatDate(item.dueDate)}</Text>
             </View>
           )}
-          {item.dueDate && ( // Zakładamy, że godzina jest w tym samym obiekcie
+          {item.dueDate && ( 
             <View style={styles.detailItem}>
               <Ionicons name="time-outline" size={16} color={theme.colors.inactive} />
               <Text style={styles.detailText}>{formatTime(item.dueDate)}</Text>
@@ -60,7 +51,6 @@ const TaskItem = ({ item, onToggleComplete, onToggleSubtask }) => {
           )}
         </View>
 
-        {/* Priorytet */}
         <FontAwesome5 
           name="bookmark" 
           solid 
@@ -69,7 +59,6 @@ const TaskItem = ({ item, onToggleComplete, onToggleSubtask }) => {
           style={styles.priorityFlag}
         />
 
-        {/* Checkbox (miejsce na wykonanie) */}
         <Pressable 
           style={[styles.checkboxBase, item.completed && styles.checkboxChecked]}
           onPress={() => onToggleComplete(item.id, item.completed)}
@@ -79,7 +68,6 @@ const TaskItem = ({ item, onToggleComplete, onToggleSubtask }) => {
 
       </View>
 
-      {/* SEKCJA Z PODZADANIAMI (Renderowana warunkowo) */}
       {item.subtasks && item.subtasks.length > 0 && (
         <View style={styles.subtasksContainer}>
           {item.subtasks.map((subtask, index) => (
