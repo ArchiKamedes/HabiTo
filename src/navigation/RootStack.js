@@ -16,11 +16,7 @@ const RootStack = () => {
         component={MainTabNavigator}
         options={{ headerShown: false }}
       />
-      <Stack.Screen
-        name="Focus"
-        component={FocusScreen}
-        options={{ headerShown: false }}
-      />
+      
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}

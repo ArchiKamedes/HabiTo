@@ -17,20 +17,6 @@ const HomeScreen = () => {
     const [subtasks, setSubtasks] = useState([]);
     today.setHours(0, 0, 0, 0);
 
-    const todayTasks = useMemo(() => {
-        return tasks.filter(task => {
-          // Upewnij się, że zadanie ma datę i jest to poprawny obiekt Timestamp
-          if (task.dueDate && typeof task.dueDate.toDate === 'function') {
-            const taskDate = task.dueDate.toDate();
-            taskDate.setHours(0, 0, 0, 0); // Resetuj godzinę zadania do północy
-            
-            // Porównaj zresetowane daty
-            return taskDate.getTime() === today.getTime();
-          }
-          return false; // Pomiń zadania bez daty
-        });
-      }, [tasks]);
-
     useEffect(() => {
         if (!user) return; 
 
@@ -48,12 +34,24 @@ const HomeScreen = () => {
         return () => unsubscribe();
       }, [user]);
 
+    const todayTasks = useMemo(() => {
+        return tasks.filter(task => {
+          if (task.dueDate && typeof task.dueDate.toDate === 'function') {
+            const taskDate = task.dueDate.toDate();
+            taskDate.setHours(0, 0, 0, 0); 
+            
+            return taskDate.getTime() === today.getTime();
+          }
+          return false;
+        });
+      }, [tasks]);
+
       const handleToggleComplete = async (taskId, currentStatus) => {
         if (!user) return;
         const taskDocRef = doc(db, 'users', user.uid, 'tasks', taskId);
         try {
           await updateDoc(taskDocRef, {
-            completed: !currentStatus // Odwracamy obecny status
+            completed: !currentStatus 
           });
         } catch (error) {
           console.error("Błąd podczas aktualizacji zadania: ", error);
@@ -76,7 +74,7 @@ const HomeScreen = () => {
           const taskDocRef = doc(db, 'users', user.uid, 'tasks', taskId);
           try {
             await updateDoc(taskDocRef, {
-              subtasks: newSubtasks // Nadpisz tablicę podzadań nową wersją
+              subtasks: newSubtasks 
             });
           } catch (error) {
             console.error("Błąd podczas aktualizacji podzadania: ", error);

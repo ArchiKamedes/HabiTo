@@ -25,26 +25,22 @@ const TasksScreen = ({ navigation }) => {
 
   const todayTasks = useMemo(() => {
     return tasks.filter(task => {
-      // Upewnij się, że zadanie ma datę i jest to poprawny obiekt Timestamp
       if (task.dueDate && typeof task.dueDate.toDate === 'function') {
         const taskDate = task.dueDate.toDate();
-        taskDate.setHours(0, 0, 0, 0); // Resetuj godzinę zadania do północy
+        taskDate.setHours(0, 0, 0, 0); 
         
-        // Porównaj zresetowane daty
         return taskDate.getTime() === today.getTime();
       }
-      return false; // Pomiń zadania bez daty
+      return false; 
     });
-  }, [tasks]); // Uruchom filtrację ponownie tylko, gdy zmieni się lista 'tasks'
+  }, [tasks]); 
 
-  // 3. Stwórz przefiltrowaną listę zadań NA PRZYSZŁOŚĆ (dla 'tasks-future-container')
   const futureTasks = useMemo(() => {
     return tasks.filter(task => {
       if (task.dueDate && typeof task.dueDate.toDate === 'function') {
         const taskDate = task.dueDate.toDate();
         taskDate.setHours(0, 0, 0, 0);
         
-        // Zwróć tylko te, które są PÓŹNIEJSZE niż dzisiaj
         return taskDate.getTime() > today.getTime();
       }
       return false;
@@ -74,7 +70,7 @@ const TasksScreen = ({ navigation }) => {
     const taskDocRef = doc(db, 'users', user.uid, 'tasks', taskId);
     try {
       await updateDoc(taskDocRef, {
-        completed: !currentStatus // Odwracamy obecny status
+        completed: !currentStatus 
       });
     } catch (error) {
       console.error("Błąd podczas aktualizacji zadania: ", error);
@@ -85,11 +81,9 @@ const TasksScreen = ({ navigation }) => {
   const handleToggleSubtask = async (taskId, subtaskIndex, currentStatus) => {
     if (!user) return;
     
-    // Znajdź zadanie w stanie
     const taskToUpdate = tasks.find(t => t.id === taskId);
     if (!taskToUpdate) return;
 
-    // Stwórz nową, zaktualizowaną tablicę podzadań
     const newSubtasks = taskToUpdate.subtasks.map((subtask, index) => {
       if (index === subtaskIndex) {
         return { ...subtask, completed: !currentStatus };
@@ -97,11 +91,10 @@ const TasksScreen = ({ navigation }) => {
       return subtask;
     });
 
-    // Zaktualizuj dokument w Firebase
     const taskDocRef = doc(db, 'users', user.uid, 'tasks', taskId);
     try {
       await updateDoc(taskDocRef, {
-        subtasks: newSubtasks // Nadpisz tablicę podzadań nową wersją
+        subtasks: newSubtasks
       });
     } catch (error) {
       console.error("Błąd podczas aktualizacji podzadania: ", error);
