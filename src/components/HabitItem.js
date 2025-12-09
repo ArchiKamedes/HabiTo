@@ -1,172 +1,357 @@
-// src/components/HabitItem.js
-import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, Modal, Pressable, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { db, auth } from '../firebaseConfig';
+import { collection, query, onSnapshot, orderBy, doc, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
-// Definicja dni tygodnia (do wyświetlania)
-const WEEKDAYS = ['Nd', 'Pn', 'Wt', 'Śr', 'Czw', 'Pt', 'Sb'];
-
-const HabitItem = ({ item, onToggle }) => {
+const HabitsScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const styles = getStyles(theme);
+  const insets = useSafeAreaInsets();
+  const user = auth.currentUser;
 
-  // Funkcja formatująca godzinę
-  const formatTime = (date) => {
-    if (!date) return '??:??';
-    return date.toDate().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  // Dzisiejsza data (do checkboxa)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayString = today.toISOString().split('T')[0];
+
+  const [habits, setHabits] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Modal
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedHabit, setSelectedHabit] = useState(null);
+
+  // --- 1. POBIERANIE (PROSTA LISTA) ---
+  useEffect(() => {
+    if (!user) return;
+    const habitsRef = collection(db, 'users', user.uid, 'habits');
+    const q = query(habitsRef, orderBy('createdAt', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      setHabits(data);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // --- 2. FILTROWANIE (Tylko wyszukiwarka) ---
+  const filteredHabits = useMemo(() => {
+    return habits.filter(h => 
+      h.habitName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [habits, searchQuery]);
+
+  // --- 3. LOGIKA CHECKBOXA ---
+  const handleToggleHabit = async (habit) => {
+    if (!user) return;
+    const habitDocRef = doc(db, 'users', user.uid, 'habits', habit.id);
+    const isCompletedToday = habit.completedDates?.includes(todayString);
+
+    try {
+      if (isCompletedToday) {
+        await updateDoc(habitDocRef, { completedDates: arrayRemove(todayString) });
+      } else {
+        await updateDoc(habitDocRef, {
+          completedDates: arrayUnion(todayString),
+          skippedDates: arrayRemove(todayString),
+          missedDates: arrayRemove(todayString)
+        });
+      }
+    } catch (error) {
+      console.error("Błąd togglowania:", error);
+    }
   };
 
-  // Komponent do wyświetlania dni tygodnia
-  const WeekdayDisplay = () => {
-    // Pokaż tylko jeśli tryb to "Wybierz dni"
-    if (item.repeatMode !== 'Wybierz dni' || !item.selectedWeekdays) {
-      return null; // Zwróć null, jeśli "Codziennie" lub "Co X dni"
-    }
-    
+  // --- 4. AKCJE MODALA ---
+  const openModal = (habit) => {
+    setSelectedHabit(habit);
+    setModalVisible(true);
+  };
+
+  const handleEdit = () => {
+    setModalVisible(false);
+    // Przekazujemy nawyk do edycji. Upewnij się, że HabitAddScreen to obsługuje!
+    navigation.navigate('HabitAdd', { habitToEdit: selectedHabit });
+  };
+
+  const handleDelete = async () => {
+    if (!selectedHabit || !user) return;
+    Alert.alert("Usuń nawyk", "Czy na pewno?", [
+      { text: "Anuluj", style: "cancel" },
+      { 
+        text: "Usuń", style: "destructive", 
+        onPress: async () => {
+          await deleteDoc(doc(db, 'users', user.uid, 'habits', selectedHabit.id));
+          setModalVisible(false);
+        }
+      }
+    ]);
+  };
+
+  // --- 5. RENDEROWANIE ELEMENTU ---
+  
+  // Akcja Swipe (np. Usuwanie) - opcjonalne, jeśli chcesz to mieć na liście
+  const renderRightActions = (progress, dragX, item) => {
     return (
-      <View style={styles.weekdaysContainer}>
-        {WEEKDAYS.map((dayName, index) => {
-          const isSelected = item.selectedWeekdays.includes(index);
-          return (
-            <View 
-              key={index} 
-              style={[
-                styles.dayCircle, 
-                isSelected && styles.dayCircleSelected
-              ]}
-            >
-              <Text style={[
-                styles.dayText,
-                isSelected && styles.dayTextSelected
-              ]}>{dayName}</Text>
-            </View>
-          );
-        })}
-      </View>
+      <TouchableOpacity 
+        style={styles.deleteAction} 
+        onPress={() => {
+          setSelectedHabit(item);
+          handleDelete(); // Wywołuje alert usuwania
+        }}
+      >
+        <Ionicons name="trash-outline" size={24} color="white" />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderHabitItem = ({ item }) => {
+    const isCompletedToday = item.completedDates?.includes(todayString);
+
+    return (
+      <Swipeable
+        renderRightActions={(p, d) => renderRightActions(p, d, item)}
+        containerStyle={styles.swipeContainer} // Ważne dla układu!
+      >
+        <TouchableOpacity 
+          style={[styles.habitCard, { borderColor: item.color || theme.colors.primary }]}
+          onPress={() => openModal(item)}
+          activeOpacity={0.8}
+        >
+          {/* IKONA */}
+          <View style={[styles.iconBox, { backgroundColor: item.color || theme.colors.primary }]}>
+            <FontAwesome5 name={item.icon || 'star'} size={20} color="white" />
+          </View>
+          
+          {/* NAZWA (BEZ STATYSTYK) */}
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>{item.habitName}</Text>
+            <Text style={styles.folderName}>{item.folder || 'Ogólne'}</Text>
+          </View>
+
+          {/* CHECKBOX */}
+          <Pressable 
+            onPress={(e) => {
+              e.stopPropagation();
+              handleToggleHabit(item);
+            }}
+            style={[
+              styles.checkbox, 
+              isCompletedToday && { backgroundColor: item.color || theme.colors.primary, borderColor: item.color || theme.colors.primary }
+            ]}
+          >
+            {isCompletedToday && <Ionicons name="checkmark" size={18} color="white" />}
+          </Pressable>
+        </TouchableOpacity>
+      </Swipeable>
     );
   };
 
   return (
-    // Główny kontener z ramką w kolorze motywu
-    <View style={[styles.container, { borderColor: item.color || theme.colors.primary }]}>
-      
-      {/* GÓRNY WIERSZ (GŁÓWNY NAWYK) */}
-      <View style={styles.mainRow}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         
-        {/* Kółko z ikoną */}
-        <View style={[styles.iconCircle, { backgroundColor: item.color || theme.colors.primary }]}>
-          <FontAwesome5 name={item.icon || 'briefcase'} size={20} color="white" />
+        {/* NAGŁÓWEK */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Wszystkie Nawyki</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('HabitAdd')} style={styles.addButton}>
+            <Ionicons name="add" size={28} color="white" />
+          </TouchableOpacity>
         </View>
 
-        {/* Tytuł nawyku */}
-        <Text style={[styles.title, item.isCompleted && styles.titleCompleted]}>
-          {item.habitName}
-        </Text>
+        {/* WYSZUKIWARKA */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={theme.colors.inactive} style={styles.searchIcon} />
+          <TextInput 
+            style={styles.searchInput}
+            placeholder="Szukaj..."
+            placeholderTextColor={theme.colors.inactive}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
 
-        {/* Dni Tygodnia (zgodnie z projektem) */}
-        <WeekdayDisplay />
+        {/* LISTA PŁASKA (BEZ FOLDERÓW) */}
+        <FlatList
+          data={filteredHabits}
+          keyExtractor={(item) => item.id}
+          renderItem={renderHabitItem}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>Brak nawyków.</Text>
+          }
+        />
 
-        {/* Godzina */}
-        <Text style={styles.timeText}>{formatTime(item.time)}</Text>
+        {/* MODAL EDYCJI / USUWANIA */}
+        <Modal animationType="fade" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+          <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
+            <View style={styles.modalContent}>
+              {selectedHabit && (
+                <>
+                  <View style={[styles.modalIconCircle, { backgroundColor: selectedHabit.color }]}>
+                     <FontAwesome5 name={selectedHabit.icon} size={30} color="white" />
+                  </View>
+                  <Text style={styles.modalTitle}>{selectedHabit.habitName}</Text>
+                  
+                  {/* PRZYCISKI AKCJI */}
+                  <View style={styles.modalButtons}>
+                     <TouchableOpacity style={[styles.actionBtn, {backgroundColor: theme.colors.primary}]} onPress={handleEdit}>
+                        <Ionicons name="pencil" size={18} color="white" style={{marginRight: 8}}/>
+                        <Text style={styles.btnText}>Edytuj</Text>
+                     </TouchableOpacity>
+                     
+                     <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#FF4500'}]} onPress={handleDelete}>
+                        <Ionicons name="trash" size={18} color="white" style={{marginRight: 8}}/>
+                        <Text style={styles.btnText}>Usuń</Text>
+                     </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </Pressable>
+        </Modal>
 
-        {/* Checkbox (miejsce na wykonanie) */}
-        <Pressable 
-          style={[
-            styles.checkboxBase, 
-            item.isCompleted && styles.checkboxChecked,
-            item.isCompleted && { backgroundColor: item.color || theme.colors.primary, borderColor: item.color || theme.colors.primary }
-          ]}
-          onPress={onToggle}
-        >
-          {item.isCompleted && <Ionicons name="checkmark" size={24} color="white" />}
-        </Pressable>
       </View>
-    </View>
+    </GestureHandlerRootView>
   );
 };
 
 const getStyles = (theme) => StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    borderWidth: 2,
-    marginBottom: theme.spacing.m,
-    padding: theme.spacing.m,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.m,
   },
-  mainRow: {
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 15,
+    marginTop: 10,
   },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.spacing.m,
-  },
-  title: {
-    fontSize: 18,
+  headerTitle: {
+    fontSize: 28,
     fontFamily: 'TitilliumWeb_700Bold',
     color: theme.colors.text,
   },
-  titleCompleted: {
-    textDecorationLine: 'line-through',
-    color: theme.colors.inactive,
+  addButton: {
+    backgroundColor: theme.colors.primary,
+    width: 45, height: 45,
+    borderRadius: 22.5,
+    justifyContent: 'center', alignItems: 'center',
+    elevation: 3,
   },
-  weekdaysContainer: {
-    flex: 1, 
+  searchContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginHorizontal: theme.spacing.s,
-  },
-  dayCircle: {
-    width: 24,
-    height: 24,
+    backgroundColor: theme.colors.card,
     borderRadius: 12,
-    justifyContent: 'center',
+    padding: 12,
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    marginHorizontal: 2,
   },
-  dayCircleSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  dayText: {
-    fontSize: 10,
-    color: theme.colors.inactive,
-    fontFamily: 'TitilliumWeb_700Bold',
-  },
-  dayTextSelected: {
-    color: 'white',
-  },
-  timeText: {
-    fontSize: 20,
-    fontFamily: 'TitilliumWeb_700Bold',
+  searchIcon: { marginRight: 10 },
+  searchInput: {
+    flex: 1,
     color: theme.colors.text,
-    marginHorizontal: theme.spacing.m,
+    fontSize: 16,
+    fontFamily: 'TitilliumWeb_400Regular',
   },
-  checkboxBase: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  // KAFELEK
+  swipeContainer: {
+    marginBottom: 12,
+    borderRadius: 16,
+    overflow: 'hidden', // Ważne przy swipe
+  },
+  habitCard: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.card,
+    padding: 15,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 2, 
+    elevation: 2,
+  },
+  iconBox: {
+    width: 44, height: 44,
+    borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
+    marginRight: 15,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 18,
+    color: theme.colors.text,
+    fontFamily: 'TitilliumWeb_700Bold',
+  },
+  folderName: {
+    fontSize: 12,
+    color: theme.colors.inactive,
+    fontFamily: 'TitilliumWeb_400Regular',
+    marginTop: 2,
+  },
+  checkbox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: theme.colors.inactive,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: 'transparent',
+    marginLeft: 10,
   },
-  checkboxChecked: {
+  // SWIPE ACTION
+  deleteAction: {
+    backgroundColor: '#FF4500',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '100%',
+    borderRadius: 16, // Żeby pasowało do karty
   },
+  emptyText: {
+    color: theme.colors.inactive,
+    textAlign: 'center',
+    marginTop: 50,
+    fontSize: 16,
+  },
+  // MODAL
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%', backgroundColor: theme.colors.card,
+    borderRadius: 20, padding: 25, alignItems: 'center',
+    elevation: 5,
+  },
+  modalIconCircle: {
+    width: 60, height: 60, borderRadius: 30,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 15,
+  },
+  modalTitle: {
+    fontSize: 22, color: theme.colors.text,
+    fontFamily: 'TitilliumWeb_700Bold', marginBottom: 25,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row', justifyContent: 'space-between', width: '100%',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, width: '45%', 
+    alignItems: 'center', justifyContent: 'center',
+  },
+  btnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
 });
 
-export default HabitItem;
+export default HabitsScreen;
