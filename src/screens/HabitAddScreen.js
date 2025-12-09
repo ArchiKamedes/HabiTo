@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import ModalDropdown from 'react-native-modal-dropdown';
-import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
 import ColorPickerModal from '../components/ColorPickerModal';
 
@@ -19,10 +19,13 @@ const WEEKDAYS = [
   { short: 'Nd', long: 'Niedziela', id: 0 },
 ];
 
-const HabitAddScreen = ({ navigation }) => {
+const HabitAddScreen = ({ navigation, route }) => {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
+  
+  const { habitToEdit } = route.params || {};
+  const isEditing = !!habitToEdit;
 
   const [habitName, setHabitName] = useState('');
   const [icon, setIcon] = useState('briefcase');
@@ -40,30 +43,61 @@ const HabitAddScreen = ({ navigation }) => {
   const [differentTimes, setDifferentTimes] = useState({});
   const [date, setDate] = useState(new Date());
   const [isColorModalVisible, setIsColorModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (isEditing && habitToEdit) {
+      setHabitName(habitToEdit.habitName || '');
+      setIcon(habitToEdit.icon || 'briefcase');
+      setColor(habitToEdit.color || theme.colors.primary);
+      setFolder(habitToEdit.folder || 'Studia');
+      setTimesPerDay(String(habitToEdit.timesPerDay || '1'));
+      setRepeatMode(habitToEdit.repeatMode || 'Codziennie');
+      setRepeatValueX(String(habitToEdit.repeatValueX || '3'));
+      setSelectedWeekdays(habitToEdit.selectedWeekdays || []);
+      setTimeMode(habitToEdit.timeMode || 'Taka sama godzina');
+
+      if (habitToEdit.notificationTimes) {
+        if (Array.isArray(habitToEdit.notificationTimes)) {
+           const convertedTimes = habitToEdit.notificationTimes.map(t => t.toDate ? t.toDate() : new Date(t));
+           setSameTimes(convertedTimes);
+        } else {
+           const convertedDiff = {};
+           Object.keys(habitToEdit.notificationTimes).forEach(key => {
+             convertedDiff[key] = habitToEdit.notificationTimes[key].map(t => t.toDate ? t.toDate() : new Date(t));
+           });
+           setDifferentTimes(convertedDiff);
+        }
+      }
+    }
+  }, [isEditing, habitToEdit]);
   
   useEffect(() => {
-    if (repeatMode !== 'Wybierz dni') {
-      setTimeMode('Taka sama godzina');
-    }
-    if (repeatMode === 'Wybierz dni') {
-      const newTimes = {};
-      const numTimes = parseInt(timesPerDay) || 1;
-      selectedWeekdays.forEach(dayId => {
-        newTimes[dayId] = Array.from({ length: numTimes }, () => new Date());
-      });
-      setDifferentTimes(newTimes);
+    if (!isEditing) {
+        if (repeatMode !== 'Wybierz dni') {
+        setTimeMode('Taka sama godzina');
+        }
+        if (repeatMode === 'Wybierz dni') {
+        const newTimes = {};
+        const numTimes = parseInt(timesPerDay) || 1;
+        selectedWeekdays.forEach(dayId => {
+            newTimes[dayId] = Array.from({ length: numTimes }, () => new Date());
+        });
+        setDifferentTimes(newTimes);
+        }
     }
   }, [repeatMode]);
 
   useEffect(() => {
-    const numTimes = parseInt(timesPerDay) || 1;
-    setSameTimes(Array.from({ length: numTimes }, () => new Date()));
-    if (repeatMode === 'Wybierz dni') {
-      const newTimes = {};
-      selectedWeekdays.forEach(dayId => {
-        newTimes[dayId] = Array.from({ length: numTimes }, () => new Date());
-      });
-      setDifferentTimes(newTimes);
+    if (!isEditing) {
+        const numTimes = parseInt(timesPerDay) || 1;
+        setSameTimes(Array.from({ length: numTimes }, () => new Date()));
+        if (repeatMode === 'Wybierz dni') {
+        const newTimes = {};
+        selectedWeekdays.forEach(dayId => {
+            newTimes[dayId] = Array.from({ length: numTimes }, () => new Date());
+        });
+        setDifferentTimes(newTimes);
+        }
     }
   }, [timesPerDay, repeatMode, selectedWeekdays]);
 
@@ -107,7 +141,7 @@ const HabitAddScreen = ({ navigation }) => {
     }
   };
 
-  const handleCreateHabit = async () => {
+  const handleSaveHabit = async () => {
     const user = auth.currentUser; 
 
     if (!user || habitName.trim() === '') {
@@ -125,7 +159,8 @@ const HabitAddScreen = ({ navigation }) => {
         notificationTimestamps[dayId] = differentTimes[dayId].map(date => Timestamp.fromDate(date));
       });
     }
-    const newHabit = {
+
+    const habitData = {
       habitName, icon, color, folder,
       timesPerDay: numTimes,
       repeatMode,
@@ -133,16 +168,24 @@ const HabitAddScreen = ({ navigation }) => {
       selectedWeekdays: repeatMode === 'Wybierz dni' ? selectedWeekdays : null,
       timeMode,
       notificationTimes: timeMode === 'Taka sama godzina' ? sameTimes : differentTimes,
-      completedDates: [],
-      skippedDates: [],
-      missedDates: [],
-      createdAt: serverTimestamp(),
-      userId: user.uid 
+      userId: user.uid,
+      // Nie nadpisujemy dat wykonania/pominięcia przy edycji, chyba że to nowy nawyk
+      ...(isEditing ? {} : {
+          completedDates: [],
+          skippedDates: [],
+          missedDates: [],
+          createdAt: serverTimestamp(),
+      })
     };
     
     try {
-      const habitsCollectionRef = collection(db, 'users', user.uid, 'habits');
-      await addDoc(habitsCollectionRef, newHabit);
+      if (isEditing) {
+          const habitRef = doc(db, 'users', user.uid, 'habits', habitToEdit.id);
+          await updateDoc(habitRef, habitData);
+      } else {
+          const habitsCollectionRef = collection(db, 'users', user.uid, 'habits');
+          await addDoc(habitsCollectionRef, habitData);
+      }
       navigation.goBack(); 
     } catch (error) {
       console.error(error);
@@ -159,7 +202,7 @@ const HabitAddScreen = ({ navigation }) => {
         style={styles.timeButton} 
         onPress={() => handleShowTimePicker({ day: dayId, index: index })}
         accessible={true}
-        accessibilityLabel={`Wybierz godzinę numer ${index + 1}. Aktualnie ustawiona: ${times[index] ? times[index].toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : 'brak'}`}
+        accessibilityLabel={`Wybierz godzinę ${index + 1}. Aktualnie: ${times[index] ? times[index].toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : 'brak'}`}
         accessibilityRole="button"
       >
         <Text style={styles.timeText}>
@@ -180,7 +223,8 @@ const HabitAddScreen = ({ navigation }) => {
           value={habitName}
           onChangeText={setHabitName}
           accessible={true}
-          accessibilityLabel="Wpisz nazwę nowego nawyku"
+          accessibilityLabel="Pole tekstowe nazwy nawyku"
+          accessibilityHint="Wpisz tutaj nazwę nawyku"
         />
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
@@ -197,7 +241,7 @@ const HabitAddScreen = ({ navigation }) => {
         <TouchableOpacity 
           style={styles.row}
           accessible={true}
-          accessibilityLabel={`Ikona nawyku: ${icon}. Kliknij aby zmienić.`}
+          accessibilityLabel={`Ikona nawyku: ${icon}`}
           accessibilityRole="button"
         >
           <View style={[styles.iconCircle, { backgroundColor: theme.colors.border }]}>
@@ -211,8 +255,8 @@ const HabitAddScreen = ({ navigation }) => {
           style={styles.row} 
           onPress={() => setIsColorModalVisible(true)}
           accessible={true}
-          accessibilityLabel="Wybierz kolor nawyku"
-          accessibilityHint={`Aktualnie wybrany kolor to ${color}`}
+          accessibilityLabel={`Kolor nawyku. Aktualny kolor to ${color}`}
+          accessibilityHint="Kliknij, aby zmienić kolor"
           accessibilityRole="button"
         >
           <View style={[styles.colorCircle, { backgroundColor: color }]} />
@@ -232,7 +276,8 @@ const HabitAddScreen = ({ navigation }) => {
           <View 
             style={styles.row}
             accessible={true}
-            accessibilityLabel={`Folder: ${folder}. Kliknij aby zmienić.`}
+            accessibilityLabel={`Folder: ${folder}`}
+            accessibilityHint="Kliknij, aby zmienić folder"
             accessibilityRole="button"
           > 
             <Ionicons name="folder-outline" size={24} color={theme.colors.text} style={styles.icon} />
@@ -243,7 +288,7 @@ const HabitAddScreen = ({ navigation }) => {
 
         <View style={styles.row}>
           <Ionicons name="return-down-back-outline" size={24} color={theme.colors.text} style={styles.icon} />
-          <Text style={styles.label} accessible={true} accessibilityLabel="Ile razy dziennie wykonywać nawyk">Wykonuj</Text>
+          <Text style={styles.label} accessible={true}>Wykonuj</Text>
           <TextInput
             style={styles.numberInput}
             value={timesPerDay}
@@ -253,7 +298,7 @@ const HabitAddScreen = ({ navigation }) => {
             accessible={true}
             accessibilityLabel="Liczba powtórzeń w ciągu dnia"
           />
-          <Text style={styles.labelSuffix}>razy w ciągu dnia</Text>
+          <Text style={styles.labelSuffix} accessible={true}>razy w ciągu dnia</Text>
         </View>
 
         <ModalDropdown
@@ -268,7 +313,8 @@ const HabitAddScreen = ({ navigation }) => {
           <View 
             style={styles.row}
             accessible={true}
-            accessibilityLabel={`Tryb powtarzania: ${repeatMode}. Kliknij aby zmienić.`}
+            accessibilityLabel={`Częstotliwość powtarzania: ${repeatMode}`}
+            accessibilityHint="Kliknij, aby zmienić tryb powtarzania"
             accessibilityRole="button"
           >
             <Ionicons name="repeat-outline" size={24} color={theme.colors.text} style={styles.icon} />
@@ -279,7 +325,7 @@ const HabitAddScreen = ({ navigation }) => {
 
         {repeatMode === 'Co X dni' && (
           <View style={styles.indentedRow}>
-            <Text style={styles.label}>X:</Text>
+            <Text style={styles.label} accessible={true}>Co ile dni:</Text>
             <TextInput
               style={styles.numberInput}
               value={repeatValueX}
@@ -287,7 +333,7 @@ const HabitAddScreen = ({ navigation }) => {
               keyboardType="numeric"
               maxLength={2}
               accessible={true}
-              accessibilityLabel="Co ile dni powtarzać nawyk"
+              accessibilityLabel="Wpisz liczbę dni odstępu"
             />
           </View>
         )}
@@ -302,9 +348,8 @@ const HabitAddScreen = ({ navigation }) => {
                 ]}
                 onPress={() => toggleWeekday(day.id)}
                 accessible={true}
-                accessibilityRole="button"
                 accessibilityLabel={`${day.long}, ${selectedWeekdays.includes(day.id) ? 'wybrano' : 'nie wybrano'}`}
-                accessibilityHint="Kliknij dwukrotnie aby przełączyć"
+                accessibilityRole="button"
               >
                 <Text style={[
                   styles.dayText,
@@ -330,27 +375,25 @@ const HabitAddScreen = ({ navigation }) => {
             <Text 
               style={styles.valueText}
               accessible={true}
-              accessibilityLabel={`Tryb godzin: ${timeMode}. Kliknij aby zmienić.`}
+              accessibilityLabel={`Tryb godzin: ${timeMode}`}
               accessibilityRole="button"
             >
               {timeMode}
             </Text>
           </ModalDropdown>
         </View>
-        
         {timeMode === 'Taka sama godzina' && (
           <View style={styles.timePickerContainer}>
             {renderTimePickers(null)}
           </View>
         )}
-        
         {timeMode === 'Różne godziny' && repeatMode === 'Wybierz dni' && (
           <View style={styles.timePickerContainer}>
             {selectedWeekdays.sort().map(dayId => {
               const day = WEEKDAYS.find(d => d.id === dayId);
               return (
                 <View key={dayId} style={styles.dayTimeRow}>
-                  <Text style={styles.dayTimeLabel} accessible={true} accessibilityLabel={`Godziny dla: ${day.long}`}>{day.long}:</Text>
+                  <Text style={styles.dayTimeLabel} accessible={true}>{day.long}:</Text>
                   <View style={styles.timeButtonsGroup}>
                     {renderTimePickers(dayId)}
                   </View>
@@ -363,7 +406,7 @@ const HabitAddScreen = ({ navigation }) => {
         <TouchableOpacity 
           style={styles.row}
           accessible={true}
-          accessibilityLabel="Wybierz roślinę do nawyku"
+          accessibilityLabel="Wybierz roślinę"
           accessibilityRole="button"
         >
           <Ionicons name="leaf-outline" size={24} color={theme.colors.text} style={styles.icon} />
@@ -374,12 +417,12 @@ const HabitAddScreen = ({ navigation }) => {
 
       <Pressable 
         style={styles.createButton} 
-        onPress={handleCreateHabit}
+        onPress={handleSaveHabit}
         accessible={true}
-        accessibilityLabel="Utwórz nowy nawyk"
+        accessibilityLabel={isEditing ? "Zapisz zmiany" : "Utwórz nawyk"}
         accessibilityRole="button"
       >
-        <Text style={styles.createButtonText}>Utwórz</Text>
+        <Text style={styles.createButtonText}>{isEditing ? "Zapisz" : "Utwórz"}</Text>
       </Pressable>
 
       <View style={styles.bottomBar}></View>
@@ -402,7 +445,7 @@ const HabitAddScreen = ({ navigation }) => {
           value={date}
           mode={'date'}
           display="spinner"
-          onChange={onDateChange}
+          onChange={() => {}}
         />
       )}
       {Platform.OS === 'ios' && showTimePicker && (
@@ -418,7 +461,7 @@ const HabitAddScreen = ({ navigation }) => {
           value={date}
           mode={'date'}
           display="default"
-          onChange={onDateChange}
+          onChange={() => {}}
         />
       )}
       {Platform.OS === 'android' && showTimePicker && (
