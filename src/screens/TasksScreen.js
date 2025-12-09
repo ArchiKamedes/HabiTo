@@ -7,8 +7,7 @@ import TaskItem from '../components/TaskItem';
 import AddFolderModal from '../components/AddFolderModal';
 import { db, auth } from '../firebaseConfig';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 
 const TasksScreen = ({ navigation }) => { 
   const insets = useSafeAreaInsets();
@@ -151,7 +150,7 @@ const TasksScreen = ({ navigation }) => {
         onPress={() => openTaskModal(item)}
         activeOpacity={0.8}
         accessible={true}
-        accessibilityLabel={`Zadanie: ${item.text}. Status: ${item.completed ? 'wykonane' : 'niewykonane'}`}
+        accessibilityLabel={`Zadanie: ${item.name || item.text || "Bez nazwy"}. Status: ${item.completed ? 'wykonane' : 'niewykonane'}`}
         accessibilityHint="Kliknij dwukrotnie, aby edytować lub usunąć. Przesuń w prawo, aby szybko usunąć."
         accessibilityRole="button"
       >
@@ -261,7 +260,7 @@ const TasksScreen = ({ navigation }) => {
             >
               {selectedTask && (
                 <>
-                  <Text style={styles.modalTitle} accessibilityRole="header">{selectedTask.text}</Text>
+                  <Text style={styles.modalTitle} accessibilityRole="header">{selectedTask.name || selectedTask.text || "Bez nazwy"}</Text>
                   
                   <View style={styles.modalButtonsContainer}>
                     <TouchableOpacity 

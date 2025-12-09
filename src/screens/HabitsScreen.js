@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, Modal, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Pressable, Modal, Alert, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../firebaseConfig';
 import { collection, query, onSnapshot, orderBy, doc, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
+import HabitItem from '../components/HabitItem';
 
 const HabitsScreen = ({ navigation }) => {
   const { theme } = useTheme();
@@ -14,14 +14,12 @@ const HabitsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const user = auth.currentUser;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayString = today.toISOString().split('T')[0];
-  const dayOfWeek = today.getDay();
+  const currentDate = new Date();
+  const formattedDate = currentDate.toLocaleDateString('pl-PL',{ day: 'numeric', month: 'numeric', year: 'numeric'});
+  const todayString = currentDate.toISOString().split('T')[0];
+  const dayOfWeek = currentDate.getDay();
 
   const [habits, setHabits] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedHabit, setSelectedHabit] = useState(null);
 
@@ -37,21 +35,19 @@ const HabitsScreen = ({ navigation }) => {
     return () => unsubscribe();
   }, [user]);
 
-  const allHabits = useMemo(() => {
-    return habits.filter(h => 
-      h.habitName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [habits, searchQuery]);
-
   const todayHabits = useMemo(() => {
-    return allHabits.filter(habit => {
+    return habits.filter(habit => {
       if (habit.repeatMode === 'Codziennie') return true;
       if (habit.repeatMode === 'Wybierz dni' && habit.selectedWeekdays) {
         return habit.selectedWeekdays.includes(dayOfWeek);
       }
       return false;
     });
-  }, [allHabits, dayOfWeek]);
+  }, [habits, dayOfWeek]);
+
+  const allHabits = useMemo(() => {
+    return habits;
+  }, [habits]);
 
   const handleToggleHabit = async (habit) => {
     if (!user) return;
@@ -116,6 +112,7 @@ const HabitsScreen = ({ navigation }) => {
 
   const renderHabitItem = ({ item }) => {
     const isCompletedToday = item.completedDates?.includes(todayString);
+    const itemForDisplay = { ...item, isCompleted: isCompletedToday };
 
     return (
       <Swipeable
@@ -123,39 +120,16 @@ const HabitsScreen = ({ navigation }) => {
         containerStyle={styles.swipeContainer}
       >
         <TouchableOpacity 
-          style={[styles.habitCard, { borderColor: item.color || theme.colors.primary }]}
           onPress={() => openModal(item)}
           activeOpacity={0.8}
           accessible={true}
           accessibilityLabel={`Nawyk ${item.habitName}, status: ${isCompletedToday ? 'wykonany' : 'niewykonany'}`}
-          accessibilityHint="Kliknij dwukrotnie aby zobaczyć szczegóły, przesuń w lewo aby usunąć"
           accessibilityRole="button"
         >
-          <View style={[styles.iconBox, { backgroundColor: item.color || theme.colors.primary }]}>
-            <FontAwesome5 name={item.icon || 'star'} size={20} color="white" />
-          </View>
-          
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>{item.habitName}</Text>
-            <Text style={styles.folderName}>{item.folder || 'Ogólne'}</Text>
-          </View>
-
-          <Pressable 
-            onPress={(e) => {
-              e.stopPropagation();
-              handleToggleHabit(item);
-            }}
-            style={[
-              styles.checkbox, 
-              isCompletedToday && { backgroundColor: item.color || theme.colors.primary, borderColor: item.color || theme.colors.primary }
-            ]}
-            accessible={true}
-            accessibilityRole="checkbox"
-            accessibilityLabel={`Oznacz nawyk ${item.habitName} jako wykonany`}
-            accessibilityState={{ checked: isCompletedToday }}
-          >
-            {isCompletedToday && <Ionicons name="checkmark" size={18} color="white" />}
-          </Pressable>
+          <HabitItem 
+            item={itemForDisplay}
+            onToggle={() => handleToggleHabit(item)}
+          />
         </TouchableOpacity>
       </Swipeable>
     );
@@ -163,73 +137,89 @@ const HabitsScreen = ({ navigation }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={{ 
+            paddingTop: insets.top + 80, 
+            paddingBottom: insets.bottom + 100 
+        }}
+      >
         
-        <View style={styles.header}>
-          <Text style={styles.headerTitle} accessibilityRole="header">Zarządzaj Nawykami</Text>
-          <TouchableOpacity 
+        <View style={styles.topRowContainer}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.headerTitle} accessibilityRole="header">Nawyki</Text>
+          </View>
+          <Pressable 
+            style={({ pressed }) => [styles.addButtonContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}
             onPress={() => navigation.navigate('HabitAdd')} 
-            style={styles.addButton}
             accessible={true}
             accessibilityLabel="Dodaj nowy nawyk"
             accessibilityRole="button"
           >
-            <Ionicons name="add" size={28} color="white" />
-          </TouchableOpacity>
+            <View style={styles.addShape}> 
+              <FontAwesome5 name='plus' size={24} color="white" /> 
+            </View>
+          </Pressable>
         </View>
 
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color={theme.colors.inactive} style={styles.searchIcon} />
-          <TextInput 
-            style={styles.searchInput}
-            placeholder="Szukaj..."
-            placeholderTextColor={theme.colors.inactive}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+        <View style={styles.foldersContainer}>
+          <View style={styles.foldersChoiceContainer}>
+            <Text style={styles.placeholderText}>Folders Choice</Text>
+          </View>
+          <Pressable 
+            style={({ pressed }) => [styles.addButtonContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]} 
             accessible={true}
-            accessibilityLabel="Pole wyszukiwania nawyków"
+            accessibilityLabel="Dodaj folder"
+            accessibilityRole="button"
+          >
+            <View style={styles.folderAddShape}> 
+              <FontAwesome5 name='plus' size={24} color={theme.colors.primary} /> 
+            </View>
+          </Pressable>
+        </View>
+
+        <View style={styles.dateRowContainer}>
+          <View style={styles.subtitleContainer}>
+            <Text style={styles.subtitleText} accessibilityRole="header">Dzisiejsze</Text>
+          </View>
+          <View style={styles.dateContainer}>
+            <Text style={styles.dateText}>{formattedDate}</Text>
+          </View>
+        </View>
+
+        <View style={styles.listContainer}>
+          <FlatList
+            data={todayHabits}
+            keyExtractor={(item) => item.id}
+            renderItem={renderHabitItem}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>Brak nawyków na dziś.</Text>
+            }
+            scrollEnabled={false}
           />
         </View>
 
-        <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-          
-          <View style={styles.sectionHeader}>
-             <Text style={styles.sectionTitle} accessibilityRole="header">Na Dziś</Text>
+        <View style={[styles.dateRowContainer, { marginTop: 25 }]}>
+          <View style={styles.subtitleContainer}>
+            <Text style={styles.subtitleText} accessibilityRole="header">Wszystkie</Text>
           </View>
-          
-          {todayHabits.length === 0 ? (
-             <Text style={styles.emptyText}>Brak nawyków zaplanowanych na dzisiaj.</Text>
-          ) : (
-             todayHabits.map(habit => (
-                <View key={habit.id}>
-                   {renderHabitItem({ item: habit })}
-                </View>
-             ))
-          )}
+        </View>
 
-          <View style={[styles.sectionHeader, { marginTop: 30 }]}>
-             <Text style={styles.sectionTitle} accessibilityRole="header">Wszystkie Nawyki</Text>
-          </View>
-
-          {allHabits.length === 0 ? (
-             <Text style={styles.emptyText}>Nie masz jeszcze żadnych nawyków.</Text>
-          ) : (
-             allHabits.map(habit => (
-                <View key={habit.id}>
-                   {renderHabitItem({ item: habit })}
-                </View>
-             ))
-          )}
-        </ScrollView>
+        <View style={styles.listContainer}>
+          <FlatList
+            data={allHabits}
+            keyExtractor={(item) => item.id}
+            renderItem={renderHabitItem}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>Brak nawyków.</Text>
+            }
+            scrollEnabled={false}
+          />
+        </View>
 
         <Modal animationType="fade" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
           <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)} accessible={false}>
-            <View 
-              style={styles.modalContent} 
-              accessible={true} 
-              accessibilityViewIsModal={true}
-              accessibilityLabel="Szczegóły nawyku"
-            >
+            <View style={styles.modalContent} accessible={true} accessibilityViewIsModal={true}>
               {selectedHabit && (
                 <>
                   <View style={[styles.modalIconCircle, { backgroundColor: selectedHabit.color }]}>
@@ -245,7 +235,6 @@ const HabitsScreen = ({ navigation }) => {
                         accessibilityLabel="Edytuj nawyk"
                         accessibilityRole="button"
                      >
-                        <Ionicons name="pencil" size={18} color="white" style={{marginRight: 8}}/>
                         <Text style={styles.btnText}>Edytuj</Text>
                      </TouchableOpacity>
                      
@@ -256,7 +245,6 @@ const HabitsScreen = ({ navigation }) => {
                         accessibilityLabel="Usuń nawyk"
                         accessibilityRole="button"
                      >
-                        <Ionicons name="trash" size={18} color="white" style={{marginRight: 8}}/>
                         <Text style={styles.btnText}>Usuń</Text>
                      </TouchableOpacity>
                   </View>
@@ -266,7 +254,7 @@ const HabitsScreen = ({ navigation }) => {
           </Pressable>
         </Modal>
 
-      </View>
+      </ScrollView>
     </GestureHandlerRootView>
   );
 };
@@ -277,110 +265,105 @@ const getStyles = (theme) => StyleSheet.create({
     backgroundColor: theme.colors.background,
     paddingHorizontal: theme.spacing.m,
   },
-  header: {
+  topRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center', 
+    marginBottom: theme.spacing.m,
+  },
+  foldersContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-    marginTop: 10,
+    marginBottom: theme.spacing.m,
+  },
+  dateRowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.m,
+  },
+  titleContainer: {
+    padding: theme.spacing.s,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontFamily: 'TitilliumWeb_700Bold',
     color: theme.colors.text,
   },
-  addButton: {
+  addButtonContainer: {
+    padding: theme.spacing.s,
+  },
+  addShape: {
+    width: 45,
+    height: 45,
+    borderRadius: 25,
     backgroundColor: theme.colors.primary,
-    width: 45, height: 45,
-    borderRadius: 22.5,
-    justifyContent: 'center', alignItems: 'center',
-    elevation: 3,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  searchIcon: { marginRight: 10 },
-  searchInput: {
-    flex: 1,
-    color: theme.colors.text,
-    fontSize: 16,
-    fontFamily: 'TitilliumWeb_400Regular',
-  },
-  sectionHeader: {
-    marginBottom: 15,
-    paddingBottom: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: 'TitilliumWeb_700Bold',
-    color: theme.colors.text,
-  },
-  swipeContainer: {
-    marginBottom: 12,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  habitCard: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.card,
-    padding: 15,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderWidth: 2, 
-    elevation: 2,
-  },
-  iconBox: {
-    width: 44, height: 44,
-    borderRadius: 12,
-    justifyContent: 'center', alignItems: 'center',
-    marginRight: 15,
-  },
-  cardContent: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 18,
-    color: theme.colors.text,
-    fontFamily: 'TitilliumWeb_700Bold',
-  },
-  folderName: {
-    fontSize: 12,
-    color: theme.colors.inactive,
-    fontFamily: 'TitilliumWeb_400Regular',
-    marginTop: 2,
-  },
-  checkbox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: theme.colors.inactive,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'transparent',
-    marginLeft: 10,
+    elevation: 5,
+  },
+  folderAddShape: {
+    width: 75,
+    height: 45,
+    borderRadius: 20,
+    backgroundColor: theme.colors.active, 
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+  },
+  foldersChoiceContainer: {
+    flex: 1, 
+    padding: theme.spacing.m,
+    borderWidth: 1,
+    borderColor: theme.colors.text,
+    marginRight: theme.spacing.s,
+  },
+  placeholderText: {
+    color: theme.colors.text,  
+    fontSize: 12,
+  },
+  subtitleContainer: {
+    padding: theme.spacing.s,
+  },
+  subtitleText: {
+    color: theme.colors.text,  
+    fontSize: 22,
+    fontFamily: 'TitilliumWeb_400Regular',
+  },
+  dateContainer: {
+    flex: 1, 
+    padding: theme.spacing.s,
+    marginLeft: theme.spacing.s,
+  },
+  dateText: {
+    color: theme.colors.text, 
+    fontSize: 22,
+    fontFamily: 'TitilliumWeb_700Bold',
+  },
+  listContainer: {
+    padding: theme.spacing.m,
+    backgroundColor: theme.colors.card,
+    borderRadius: 20,
+    minHeight: 100, 
+    elevation: 3,
+  },
+  swipeContainer: {
+    marginBottom: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   deleteAction: {
     backgroundColor: '#FF4500',
     justifyContent: 'center',
-    alignItems: 'center',
-    width: 80,
-    height: '100%',
-    borderRadius: 16,
+    alignItems: 'flex-start',
+    paddingLeft: 20,
+    width: '100%',
+    height: '100%', 
   },
   emptyText: {
     color: theme.colors.inactive,
     textAlign: 'center',
-    marginVertical: 20,
+    marginTop: 20,
     fontSize: 16,
   },
   modalOverlay: {
@@ -405,7 +388,6 @@ const getStyles = (theme) => StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', width: '100%',
   },
   actionBtn: {
-    flexDirection: 'row',
     paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, width: '45%', 
     alignItems: 'center', justifyContent: 'center',
   },

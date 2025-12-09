@@ -9,8 +9,7 @@ import {
   collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, 
   arrayUnion, arrayRemove 
 } from 'firebase/firestore';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 
 const HomeScreen = ({ navigation }) => {
