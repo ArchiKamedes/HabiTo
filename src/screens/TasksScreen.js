@@ -1,14 +1,14 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, TextInput, FlatList, StyleSheet, ScrollView, TouchableOpacity, Pressable } from 'react-native';
-import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { View, Text, FlatList, StyleSheet, ScrollView, TouchableOpacity, Pressable, Modal, Alert } from 'react-native';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import TaskItem from '../components/TaskItem';
 import AddFolderModal from '../components/AddFolderModal';
 import { db, auth } from '../firebaseConfig';
-import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
-
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 const TasksScreen = ({ navigation }) => { 
   const insets = useSafeAreaInsets();
@@ -17,9 +17,13 @@ const TasksScreen = ({ navigation }) => {
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString('pl-PL',{ day: 'numeric', month: 'numeric', year: 'numeric'});
   const user = auth.currentUser;
+  
   const [isFolderModalVisible, setIsFolderModalVisible] = useState(false);
   const [tasks, setTasks] = useState([]); 
-  const [subtasks, setSubtasks] = useState([]);
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -28,7 +32,6 @@ const TasksScreen = ({ navigation }) => {
       if (task.dueDate && typeof task.dueDate.toDate === 'function') {
         const taskDate = task.dueDate.toDate();
         taskDate.setHours(0, 0, 0, 0); 
-        
         return taskDate.getTime() === today.getTime();
       }
       return false; 
@@ -40,7 +43,6 @@ const TasksScreen = ({ navigation }) => {
       if (task.dueDate && typeof task.dueDate.toDate === 'function') {
         const taskDate = task.dueDate.toDate();
         taskDate.setHours(0, 0, 0, 0);
-        
         return taskDate.getTime() > today.getTime();
       }
       return false;
@@ -64,7 +66,6 @@ const TasksScreen = ({ navigation }) => {
     return () => unsubscribe();
   }, [user]);
 
-  // --- 3. Funkcja do zaznaczania GŁÓWNEGO zadania (UPDATE) ---
   const handleToggleComplete = async (taskId, currentStatus) => {
     if (!user) return;
     const taskDocRef = doc(db, 'users', user.uid, 'tasks', taskId);
@@ -73,11 +74,10 @@ const TasksScreen = ({ navigation }) => {
         completed: !currentStatus 
       });
     } catch (error) {
-      console.error("Błąd podczas aktualizacji zadania: ", error);
+      console.error(error);
     }
   };
 
-  // --- 4. Funkcja do zaznaczania PODZADANIA (UPDATE) ---
   const handleToggleSubtask = async (taskId, subtaskIndex, currentStatus) => {
     if (!user) return;
     
@@ -97,111 +97,211 @@ const TasksScreen = ({ navigation }) => {
         subtasks: newSubtasks
       });
     } catch (error) {
-      console.error("Błąd podczas aktualizacji podzadania: ", error);
+      console.error(error);
     }
   };
 
-  return (
-    <ScrollView 
-      style={styles.mainContainer}
-    
-      contentContainerStyle={{ 
-          paddingTop: insets.top + 80, 
-          paddingBottom: insets.bottom + 100 
-      }}
+  const openTaskModal = (task) => {
+    setSelectedTask(task);
+    setModalVisible(true);
+  };
+
+  const handleEditTask = () => {
+    setModalVisible(false);
+    navigation.getParent().navigate('TaskAdd', { taskToEdit: selectedTask });
+  };
+
+  const handleDeleteTask = async (taskToDelete) => {
+    const task = taskToDelete || selectedTask;
+    if (!task || !user) return;
+
+    Alert.alert("Usuń zadanie", "Czy na pewno chcesz usunąć to zadanie?", [
+      { text: "Anuluj", style: "cancel" },
+      { 
+        text: "Usuń", 
+        style: "destructive", 
+        onPress: async () => {
+          await deleteDoc(doc(db, 'users', user.uid, 'tasks', task.id));
+          setModalVisible(false);
+        }
+      }
+    ]);
+  };
+
+  const renderLeftActions = (progress, dragX, item) => {
+    return (
+      <TouchableOpacity 
+        style={styles.deleteAction} 
+        onPress={() => handleDeleteTask(item)}
+        accessible={true}
+        accessibilityLabel="Usuń zadanie"
+        accessibilityRole="button"
+      >
+        <Ionicons name="trash-outline" size={24} color="white" />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderTaskItem = ({ item }) => (
+    <Swipeable
+      renderLeftActions={(p, d) => renderLeftActions(p, d, item)}
+      containerStyle={styles.swipeContainer}
     >
-      <View style={styles.topRowContainer}>
-        <View style={styles.titleTaskContainer}>
-          <Text style={styles.titleTaskText}>Zadania</Text>
-        </View>
-        <Pressable 
-          style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}
-          onPress={() => navigation.getParent().navigate('TaskAdd')} >
-          <View style={styles.taskAddShape}> 
-            <FontAwesome5 name='plus' size={24} color={theme.colors.plus} /> 
-          </View>
-        </Pressable>
-      </View>
-
-      {/* Folders Row*/}
-      <View style={styles.foldersContainer}>
-        <View style={styles.foldersChoiceContainer}>
-          <Text style={styles.placeholderText}>Folders Choice</Text>
-        </View>
-        <Pressable style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}onPress={() => setIsFolderModalVisible(true)}>
-          <View style={styles.folderAddShape}> 
-            <FontAwesome5 name='plus' size={24} color={theme.colors.primary} /> 
-          </View>
-        </Pressable>
-      </View>
-
-      {/*Days Row */}
-      <View style={styles.daysContainer}>
-        <View style={styles.titleTodayContainer}>
-          <Text style={styles.SubTytlesText}>Dzisiejsze</Text>
-        </View>
-        {/*today-date*/}
-        <View style={styles.daysDateContainer}>
-          <Text style={styles.dateText}>{formattedDate}</Text>
-        </View>
-      </View>
-
-      {/*Tasks Today Area */}
-     <View style={styles.tasksTodayContainer}>
-        <FlatList
-          data={todayTasks}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TaskItem 
-              item={item}
-              onToggleComplete={handleToggleComplete}
-              onToggleSubtask={handleToggleSubtask}
-            />
-          )}
-          ListEmptyComponent={
-            <Text style={styles.emptyListText}>Nie masz żadnych zadań na dziś!</Text>
-          }
-          scrollEnabled={false}
+      <TouchableOpacity 
+        onPress={() => openTaskModal(item)}
+        activeOpacity={0.8}
+        accessible={true}
+        accessibilityLabel={`Zadanie: ${item.text}. Status: ${item.completed ? 'wykonane' : 'niewykonane'}`}
+        accessibilityHint="Kliknij dwukrotnie, aby edytować lub usunąć. Przesuń w prawo, aby szybko usunąć."
+        accessibilityRole="button"
+      >
+        <TaskItem 
+          item={item}
+          onToggleComplete={handleToggleComplete}
+          onToggleSubtask={handleToggleSubtask}
         />
-      </View>
+      </TouchableOpacity>
+    </Swipeable>
+  );
 
-      {/*Title Future */}
-      <View style={styles.titleFutureContainer}>
-        <Text style={styles.SubTytlesText}>Przyszłe</Text>
-      </View>
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ScrollView 
+        style={styles.mainContainer}
+        contentContainerStyle={{ 
+            paddingTop: insets.top + 80, 
+            paddingBottom: insets.bottom + 100 
+        }}
+      >
+        <View style={styles.topRowContainer}>
+          <View style={styles.titleTaskContainer}>
+            <Text style={styles.titleTaskText} accessibilityRole="header">Zadania</Text>
+          </View>
+          <Pressable 
+            style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}
+            onPress={() => navigation.getParent().navigate('TaskAdd')} 
+            accessible={true}
+            accessibilityLabel="Dodaj nowe zadanie"
+            accessibilityRole="button"
+          >
+            <View style={styles.taskAddShape}> 
+              <FontAwesome5 name='plus' size={24} color={theme.colors.plus} /> 
+            </View>
+          </Pressable>
+        </View>
 
-      {/*Tasks Future Area */}
-      <View style={styles.tasksFutureContainer}>
-         <FlatList
-          data={futureTasks}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TaskItem
-              item={item}
-              onToggleComplete={handleToggleComplete}
-              onToggleSubtask={handleToggleSubtask}
-            />
-          )}
-          ListEmptyComponent={
-            <Text style={styles.emptyListText}>Nie masz jeszcze żadnych zadań!</Text>
-          }
-          scrollEnabled={false}
-        />
-      </View>
+        <View style={styles.foldersContainer}>
+          <View style={styles.foldersChoiceContainer}>
+            <Text style={styles.placeholderText}>Folders Choice</Text>
+          </View>
+          <Pressable 
+            style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]} 
+            onPress={() => setIsFolderModalVisible(true)}
+            accessible={true}
+            accessibilityLabel="Dodaj nowy folder"
+            accessibilityRole="button"
+          >
+            <View style={styles.folderAddShape}> 
+              <FontAwesome5 name='plus' size={24} color={theme.colors.primary} /> 
+            </View>
+          </Pressable>
+        </View>
 
-      <AddFolderModal visible={isFolderModalVisible} onClose={() => setIsFolderModalVisible(false)} defaultFolderType="task"/>
+        <View style={styles.daysContainer}>
+          <View style={styles.titleTodayContainer}>
+            <Text style={styles.SubTytlesText} accessibilityRole="header">Dzisiejsze</Text>
+          </View>
+          <View style={styles.daysDateContainer}>
+            <Text style={styles.dateText} accessibilityLabel={`Dzisiejsza data: ${formattedDate}`}>{formattedDate}</Text>
+          </View>
+        </View>
 
-    </ScrollView> 
+        <View style={styles.tasksTodayContainer}>
+          <FlatList
+            data={todayTasks}
+            keyExtractor={(item) => item.id}
+            renderItem={renderTaskItem}
+            ListEmptyComponent={
+              <Text style={styles.emptyListText} accessible={true}>Nie masz żadnych zadań na dziś!</Text>
+            }
+            scrollEnabled={false}
+          />
+        </View>
+
+        <View style={styles.titleFutureContainer}>
+          <Text style={styles.SubTytlesText} accessibilityRole="header">Przyszłe</Text>
+        </View>
+
+        <View style={styles.tasksFutureContainer}>
+           <FlatList
+            data={futureTasks}
+            keyExtractor={(item) => item.id}
+            renderItem={renderTaskItem}
+            ListEmptyComponent={
+              <Text style={styles.emptyListText} accessible={true}>Nie masz jeszcze żadnych zadań!</Text>
+            }
+            scrollEnabled={false}
+          />
+        </View>
+
+        <AddFolderModal visible={isFolderModalVisible} onClose={() => setIsFolderModalVisible(false)} defaultFolderType="task"/>
+
+        <Modal animationType="fade" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+          <Pressable 
+            style={styles.modalOverlay} 
+            onPress={() => setModalVisible(false)}
+            accessible={true}
+            accessibilityLabel="Zamknij okno opcji zadania"
+            accessibilityRole="button"
+          >
+            <View 
+              style={styles.modalContent}
+              accessible={true}
+              accessibilityViewIsModal={true}
+            >
+              {selectedTask && (
+                <>
+                  <Text style={styles.modalTitle} accessibilityRole="header">{selectedTask.text}</Text>
+                  
+                  <View style={styles.modalButtonsContainer}>
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.editButton]} 
+                      onPress={handleEditTask}
+                      accessible={true}
+                      accessibilityLabel="Edytuj zadanie"
+                      accessibilityRole="button"
+                    >
+                      <Ionicons name="pencil" size={20} color="white" />
+                      <Text style={styles.modalButtonText}>Edytuj</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.modalButton, styles.deleteButton]} 
+                      onPress={() => handleDeleteTask(null)}
+                      accessible={true}
+                      accessibilityLabel="Usuń zadanie"
+                      accessibilityRole="button"
+                    >
+                      <Ionicons name="trash" size={20} color="white" />
+                      <Text style={styles.modalButtonText}>Usuń</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </Pressable>
+        </Modal>
+
+      </ScrollView> 
+    </GestureHandlerRootView>
   );
 };
 
 const getStyles = (theme) => StyleSheet.create({
-mainContainer: {
+  mainContainer: {
     flex: 1, 
     backgroundColor: theme.colors.background,
     paddingHorizontal: theme.spacing.m, 
   },
-
   topRowContainer: {
     flexDirection: 'row',
     alignItems: 'center', 
@@ -219,11 +319,7 @@ mainContainer: {
     alignItems: 'center',
     marginBottom: theme.spacing.m,
   },
- 
   titleTaskContainer: {
-    padding: theme.spacing.s,
-  },
-  taskAddContainer: {
     padding: theme.spacing.s,
   },
   foldersChoiceContainer: {
@@ -239,7 +335,6 @@ mainContainer: {
   titleTodayContainer: {
     padding: theme.spacing.s,
   },
-  
   daysDateContainer: {
     flex: 1, 
     padding: theme.spacing.s,
@@ -253,7 +348,6 @@ mainContainer: {
     marginTop: theme.spacing.n,
     minHeight: 200, 
     elevation: 3,
-
   },
   titleFutureContainer: {
     padding: theme.spacing.s,
@@ -269,28 +363,24 @@ mainContainer: {
     marginTop: theme.spacing.n,
     elevation: 3,
   },
-
-  //SHAPES
   taskAddShape:{
-  width: 45,
-  height: 45,
-  borderRadius: 25,
-  backgroundColor: theme.colors.active,
-  justifyContent: 'center',
-  alignItems: 'center',
-  elevation: 10,
+    width: 45,
+    height: 45,
+    borderRadius: 25,
+    backgroundColor: theme.colors.active,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 10,
   },
-
   folderAddShape:{
-  width: 75,
-  height: 45,
-  borderRadius: 20,
-  backgroundColor: theme.colors.active,
-  justifyContent: 'center',
-  alignItems: 'center',
-  elevation: 10,
+    width: 75,
+    height: 45,
+    borderRadius: 20,
+    backgroundColor: theme.colors.active,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 10,
   },
-
   placeholderText: {
     color: theme.colors.text,  
     fontSize: 12,
@@ -310,6 +400,73 @@ mainContainer: {
     fontSize: 22,
     fontFamily: 'TitilliumWeb_700Bold,',
   },
+  emptyListText: {
+    color: theme.colors.inactive,
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    fontFamily: 'TitilliumWeb_400Regular',
+  },
+  swipeContainer: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  deleteAction: {
+    backgroundColor: '#FF4500', 
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingLeft: 20,
+    width: '100%',
+    height: '100%', 
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: theme.colors.card,
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    color: theme.colors.text,
+    fontFamily: 'TitilliumWeb_700Bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 10,
+  },
+  modalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    width: '45%',
+  },
+  editButton: {
+    backgroundColor: theme.colors.primary,
+  },
+  deleteButton: {
+    backgroundColor: '#FF4500',
+  },
+  modalButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    marginLeft: 5,
+  },
 });
 
-export default TasksScreen; 
+export default TasksScreen;

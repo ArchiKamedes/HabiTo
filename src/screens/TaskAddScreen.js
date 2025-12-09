@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView, FlatList, Pressable} from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView, Pressable } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { FontAwesome5, Ionicons } from '@expo/vector-icons'; 
-import ModalDropdown from 'react-native-modal-dropdown'; 
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import ModalDropdown from 'react-native-modal-dropdown';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
 import ColorPickerModal from '../components/ColorPickerModal';
@@ -20,16 +20,18 @@ const TaskAddScreen = ({ navigation }) => {
   const [showTimePicker, setShowTimePicker] = useState(false);
 
   const [icon, setIcon] = useState('briefcase');
-  const [color, setColor] = useState(theme.colors.primary); 
-  const [folder, setFolder] = useState('Studia'); 
+  const [color, setColor] = useState(theme.colors.primary);
+  const [folder, setFolder] = useState('Studia');
   const [subtasks, setSubtasks] = useState([]);
-  const [newSubtaskText, setNewSubtaskText] = useState(''); 
+  const [newSubtaskText, setNewSubtaskText] = useState('');
   const [reminder, setReminder] = useState('Nie przypominaj');
-  const [priority, setPriority] = useState(1); 
+  const [priority, setPriority] = useState(1);
+  const [editingSubtaskId, setEditingSubtaskId] = useState(null);
+  const [editingText, setEditingText] = useState('');
+  const [isColorModalVisible, setIsColorModalVisible] = useState(false);
 
-  // --- Funkcje obsługi ---
   const onDateChange = (event, selectedDate) => {
-    setShowDatePicker(Platform.OS === 'ios'); 
+    setShowDatePicker(Platform.OS === 'ios');
     if (event.type === 'set' && selectedDate) {
       setDate(selectedDate);
     }
@@ -42,99 +44,73 @@ const TaskAddScreen = ({ navigation }) => {
     }
   };
 
-  //dodawania podzadania
   const handleAddSubtask = () => {
-    if (newSubtaskText.trim() === '') return; 
+    if (newSubtaskText.trim() === '') return;
     setSubtasks([...subtasks, { id: Date.now().toString(), text: newSubtaskText.trim(), completed: false }]);
-    setNewSubtaskText(''); 
+    setNewSubtaskText('');
   };
 
-  const [editingSubtaskId, setEditingSubtaskId] = useState(null);
-  // Stan przechowujący tymczasowy tekst podczas edycji
-  const [editingText, setEditingText] = useState('');
-
-  // --- Funkcja USUWANIA ---
   const handleDeleteSubtask = (id) => {
     setSubtasks(subtasks.filter(item => item.id !== id));
   };
 
-  // --- Funkcja ROZPOCZĘCIA edycji ---
   const startEditing = (item) => {
-    setEditingSubtaskId(item.id); // Włącz tryb edycji dla tego ID
-    setEditingText(item.text);    // Wpisz obecny tekst do edytora
+    setEditingSubtaskId(item.id);
+    setEditingText(item.text);
   };
 
-  // --- Funkcja ZAPISANIA edycji ---
   const saveEdit = () => {
     setSubtasks(subtasks.map(item => {
       if (item.id === editingSubtaskId) {
-        return { ...item, text: editingText }; // Zaktualizuj tekst
+        return { ...item, text: editingText };
       }
       return item;
     }));
-    setEditingSubtaskId(null); // Wyłącz tryb edycji
+    setEditingSubtaskId(null);
     setEditingText('');
   };
 
-  const [isColorModalVisible, setIsColorModalVisible] = useState(false);
-
-  // Funkcja "Utwórz" 
   const handleCreateTask = async () => {
-    const user = auth.currentUser; // 1. Pobierz zalogowanego użytkownika
+    const user = auth.currentUser;
 
-    // 2. Sprawdź, czy użytkownik jest zalogowany i czy nazwa zadania nie jest pusta
     if (!user || taskName.trim() === '') {
-      console.log("Użytkownik nie jest zalogowany lub nazwa zadania jest pusta.");
-      return; // Zatrzymaj funkcję
+      return;
     }
 
-    // 3. Stwórz obiekt zadania (masz to już zrobione)
     const newTask = {
-      name: taskName, // Użyj 'name' zamiast 'taskName' dla spójności z modelem
+      name: taskName,
       icon: icon,
       color: color,
-      folder: folder, // W przyszłości to będzie ID folderu
+      folder: folder,
       subtasks: subtasks,
-      dueDate: date, // Przechowuje całą datę i godzinę
+      dueDate: date,
       reminder: reminder,
       priority: priority,
-      completed: false, // Domyślnie nowe zadanie jest nieukończone
-      createdAt: serverTimestamp(), // Użyj daty serwera Firebase
-      userId: user.uid // Dołącz ID użytkownika do zadania
+      completed: false,
+      createdAt: serverTimestamp(),
+      userId: user.uid
     };
 
     try {
-      // 4. Stwórz referencję do podkolekcji 'tasks' tego użytkownika
       const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
-      
-      // 5. Dodaj nowy dokument (zadanie) do tej podkolekcji
       await addDoc(tasksCollectionRef, newTask);
-      
-      console.log("ZADANIE DODANE DO FIREBASE!");
-
-      // 6. Zamknij okno (modal) po sukcesie
-      navigation.goBack(); 
+      navigation.goBack();
 
     } catch (error) {
-      console.error("Błąd podczas dodawania zadania: ", error);
-      // Tutaj możesz pokazać użytkownikowi jakiś alert o błędzie
+      console.error(error);
     }
   };
 
   const priorities = [
     { level: 1, color: theme.colors.inactive, name: 'Niski' },
-    { level: 2, color: '#FFA500', name: 'Średni' }, 
+    { level: 2, color: '#FFA500', name: 'Średni' },
     { level: 3, color: '#FF4500', name: 'Wysoki' },
-    { level: 4, color: '#DC143C', name: 'Pilny' }, 
-  ];
-
-  const iconColor = [
-
+    { level: 4, color: '#DC143C', name: 'Pilny' },
   ];
 
   return (
     <ScrollView style={[styles.screenContainer]}>
-      
+
       <View style={styles.header}>
         <TextInput
           style={styles.titleInput}
@@ -142,35 +118,53 @@ const TaskAddScreen = ({ navigation }) => {
           placeholderTextColor={theme.colors.placeholderText}
           value={taskName}
           onChangeText={setTaskName}
+          accessible={true}
+          accessibilityLabel="Nazwa zadania"
+          accessibilityHint="Wpisz nazwę nowego zadania"
         />
       </View>
 
       <View style={styles.formContainer}>
-        
-        <TouchableOpacity style={styles.row}>
+
+        <TouchableOpacity 
+          style={styles.row}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`Ikona zadania: ${icon}`}
+        >
           <FontAwesome5 name={icon} size={24} color={theme.colors.text} style={styles.icon} />
           <Text style={styles.label}>Ikona</Text>
           <Text style={styles.valueText}>{icon}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.row} 
-          onPress={() => setIsColorModalVisible(true)} 
+        <TouchableOpacity
+          style={styles.row}
+          onPress={() => setIsColorModalVisible(true)}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Zmień kolor zadania"
+          accessibilityHint={`Aktualny kolor to ${color}`}
         >
           <View style={[styles.colorCircle, { backgroundColor: color }]} />
           <Text style={styles.label}>Kolor</Text>
-          <Text style={styles.valueText}>Zmień</Text> 
+          <Text style={styles.valueText}>Zmień</Text>
         </TouchableOpacity>
 
         <ModalDropdown
           options={['Studia', 'Praca', 'Dom', 'Zakupy']}
           defaultIndex={0}
           defaultValue={folder}
-          onSelect={(index, value) => setFolder(value)}         
+          onSelect={(index, value) => setFolder(value)}
           dropdownStyle={styles.dropdownList}
           dropdownTextStyle={styles.dropdownText}
         >
-          <View style={styles.row}> 
+          <View 
+            style={styles.row}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Folder zadania: ${folder}`}
+            accessibilityHint="Kliknij dwukrotnie, aby zmienić folder"
+          >
             <Ionicons name="folder-outline" size={24} color={theme.colors.text} style={styles.icon} />
             <Text style={styles.label}>Folder</Text>
             <Text style={styles.valueText}>{folder}</Text>
@@ -178,41 +172,55 @@ const TaskAddScreen = ({ navigation }) => {
         </ModalDropdown>
 
         <View style={styles.subtaskSection}>
-          <View style={styles.row}>
+          <View style={styles.row} accessible={true} accessibilityRole="header">
             <Ionicons name="checkmark-done-outline" size={24} color={theme.colors.text} style={styles.icon} />
             <Text style={styles.label}>Podzadania</Text>
           </View>
 
-          {/* LISTA PODZADAŃ */}
           {subtasks.map((item) => (
             <View key={item.id} style={styles.subtaskRowItem}>
-              
-              {/* CZY JESTEŚMY W TRYBIE EDYCJI TEGO KONKRETNEGO ELEMENTU? */}
+
               {editingSubtaskId === item.id ? (
-                // --- TRYB EDYCJI ---
                 <>
-                  <TextInput 
-                    style={[styles.subtaskInput, styles.editInput]} 
+                  <TextInput
+                    style={[styles.subtaskInput, styles.editInput]}
                     value={editingText}
                     onChangeText={setEditingText}
-                    autoFocus={true} // Automatycznie ustaw kursor
+                    autoFocus={true}
+                    accessible={true}
+                    accessibilityLabel="Edytuj treść podzadania"
                   />
-                  <TouchableOpacity onPress={saveEdit} style={styles.actionButton}>
+                  <TouchableOpacity 
+                    onPress={saveEdit} 
+                    style={styles.actionButton}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Zapisz zmiany w podzadaniu"
+                  >
                     <Ionicons name="checkmark-circle" size={26} color={theme.colors.primary} />
                   </TouchableOpacity>
                 </>
               ) : (
-                // --- TRYB WYŚWIETLANIA ---
                 <>
                   <Text style={styles.subtaskText}>→ {item.text}</Text>
-                  
+
                   <View style={styles.actionsContainer}>
-                    {/* Przycisk Edytuj */}
-                    <TouchableOpacity onPress={() => startEditing(item)} style={styles.actionButton}>
+                    <TouchableOpacity 
+                      onPress={() => startEditing(item)} 
+                      style={styles.actionButton}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Edytuj podzadanie: ${item.text}`}
+                    >
                       <Ionicons name="pencil" size={20} color={theme.colors.inactive} />
                     </TouchableOpacity>
-                    {/* Przycisk Usuń */}
-                    <TouchableOpacity onPress={() => handleDeleteSubtask(item.id)} style={styles.actionButton}>
+                    <TouchableOpacity 
+                      onPress={() => handleDeleteSubtask(item.id)} 
+                      style={styles.actionButton}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Usuń podzadanie: ${item.text}`}
+                    >
                       <Ionicons name="trash" size={20} color="#FF4500" />
                     </TouchableOpacity>
                   </View>
@@ -221,7 +229,6 @@ const TaskAddScreen = ({ navigation }) => {
             </View>
           ))}
 
-          {/* Input do dodawania NOWYCH (Twój stary kod) */}
           <View style={styles.inputRow}>
             <TextInput
               style={styles.subtaskInput}
@@ -229,20 +236,42 @@ const TaskAddScreen = ({ navigation }) => {
               placeholderTextColor={theme.colors.inactive}
               value={newSubtaskText}
               onChangeText={setNewSubtaskText}
+              accessible={true}
+              accessibilityLabel="Wpisz treść nowego podzadania"
             />
-            <Pressable onPress={handleAddSubtask} style={styles.addSubtaskButton}>
+            <Pressable 
+              onPress={handleAddSubtask} 
+              style={styles.addSubtaskButton}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Dodaj podzadanie do listy"
+            >
               <Ionicons name="add-circle" size={30} color={theme.colors.primary} />
             </Pressable>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.row} onPress={() => setShowDatePicker(true)}>
+        <TouchableOpacity 
+          style={styles.row} 
+          onPress={() => setShowDatePicker(true)}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`Data wykonania: ${date.toLocaleDateString('pl-PL')}`}
+          accessibilityHint="Kliknij dwukrotnie, aby zmienić datę"
+        >
           <Ionicons name="calendar-outline" size={24} color={theme.colors.text} style={styles.icon} />
           <Text style={styles.label}>Termin wykonania</Text>
           <Text style={styles.valueText}>{date.toLocaleDateString('pl-PL')}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.row} onPress={() => setShowTimePicker(true)}>
+        <TouchableOpacity 
+          style={styles.row} 
+          onPress={() => setShowTimePicker(true)}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`Godzina wykonania: ${date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`}
+          accessibilityHint="Kliknij dwukrotnie, aby zmienić godzinę"
+        >
           <Ionicons name="time-outline" size={24} color={theme.colors.text} style={styles.icon} />
           <Text style={styles.label}>Godzina</Text>
           <Text style={styles.valueText}>{date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</Text>
@@ -252,11 +281,17 @@ const TaskAddScreen = ({ navigation }) => {
           options={['Nie przypominaj', 'Codziennie', 'Co drugi dzień', 'Dzień przed', 'Dzień oddania']}
           defaultIndex={0}
           defaultValue={reminder}
-          onSelect={(index, value) => setReminder(value)}       
+          onSelect={(index, value) => setReminder(value)}
           dropdownStyle={styles.dropdownList}
           dropdownTextStyle={styles.dropdownText}
         >
-          <View style={styles.row}>
+          <View 
+            style={styles.row}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Przypomnienie: ${reminder}`}
+            accessibilityHint="Kliknij dwukrotnie, aby zmienić opcje przypomnienia"
+          >
             <Ionicons name="notifications-outline" size={24} color={theme.colors.text} style={styles.icon} />
             <Text style={styles.label}>Przypomnij</Text>
             <Text style={styles.valueText}>{reminder}</Text>
@@ -265,15 +300,27 @@ const TaskAddScreen = ({ navigation }) => {
 
         <View style={styles.row}>
           <Ionicons name="bookmark-outline" size={24} color={theme.colors.text} style={styles.icon} />
-          <Text style={styles.label}>Priorytet</Text>
-          <View style={styles.priorityContainer}>
+          <Text style={styles.label} accessible={true}>Priorytet</Text>
+          <View 
+            style={styles.priorityContainer}
+            accessible={true}
+            accessibilityRole="radiogroup"
+            accessibilityLabel="Wybierz priorytet zadania"
+          >
             {priorities.map((p) => (
-              <Pressable key={p.level} onPress={() => setPriority(p.level)}>
-                <FontAwesome5 
-                  name="bookmark" 
-                  size={30} 
-                  color={p.color} 
-                  solid={priority === p.level} 
+              <Pressable 
+                key={p.level} 
+                onPress={() => setPriority(p.level)}
+                accessible={true}
+                accessibilityRole="radio"
+                accessibilityLabel={`Priorytet ${p.name}`}
+                accessibilityState={{ selected: priority === p.level }}
+              >
+                <FontAwesome5
+                  name="bookmark"
+                  size={30}
+                  color={p.color}
+                  solid={priority === p.level}
                   style={priority === p.level ? styles.prioritySelected : styles.priorityNormal}
                 />
               </Pressable>
@@ -283,11 +330,18 @@ const TaskAddScreen = ({ navigation }) => {
 
       </View>
 
-      <Pressable style={styles.createButton} onPress={handleCreateTask}>
+      <Pressable 
+        style={styles.createButton} 
+        onPress={handleCreateTask}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel="Utwórz zadanie"
+        accessibilityHint="Zapisuje nowe zadanie i wraca do poprzedniego ekranu"
+      >
         <Text style={styles.createButtonText}>Utwórz</Text>
       </Pressable>
 
-        <View style={styles.bottomBar}></View>
+      <View style={styles.bottomBar}></View>
 
       {Platform.OS === 'ios' && showDatePicker && (
         <DateTimePicker
@@ -326,13 +380,11 @@ const TaskAddScreen = ({ navigation }) => {
       <ColorPickerModal
         visible={isColorModalVisible}
         onClose={() => setIsColorModalVisible(false)}
-        onSelectColor={(selectedColor) => setColor(selectedColor)} 
-        selectedColor={color} 
+        onSelectColor={(selectedColor) => setColor(selectedColor)}
+        selectedColor={color}
       />
 
     </ScrollView>
-
-
   );
 };
 
@@ -342,7 +394,7 @@ const getStyles = (theme) => StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: theme.colors.primary, 
+    backgroundColor: theme.colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -350,7 +402,7 @@ const getStyles = (theme) => StyleSheet.create({
     paddingVertical: theme.spacing.s,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    borderTopColor: 'transparent', 
+    borderTopColor: 'transparent',
   },
   titleInput: {
     flex: 1,
@@ -359,9 +411,9 @@ const getStyles = (theme) => StyleSheet.create({
     color: theme.colors.text2,
     fontFamily: 'TitilliumWeb_700Bold',
   },
-    bottomBar: {
-    backgroundColor: theme.colors.primary, 
-    height:30,
+  bottomBar: {
+    backgroundColor: theme.colors.primary,
+    height: 30,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -369,7 +421,7 @@ const getStyles = (theme) => StyleSheet.create({
     paddingVertical: theme.spacing.s,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    borderTopColor: 'transparent', 
+    borderTopColor: 'transparent',
   },
   formContainer: {
     paddingHorizontal: theme.spacing.m,
@@ -381,7 +433,7 @@ const getStyles = (theme) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  rowContent: { 
+  rowContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -389,7 +441,7 @@ const getStyles = (theme) => StyleSheet.create({
     marginRight: theme.spacing.m,
   },
   label: {
-    flex: 1, 
+    flex: 1,
     fontSize: 18,
     color: theme.colors.text,
     fontFamily: 'TitilliumWeb_400Regular',
@@ -454,35 +506,30 @@ const getStyles = (theme) => StyleSheet.create({
   subtaskRowItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Rozsuwa tekst i przyciski
+    justifyContent: 'space-between',
     paddingVertical: theme.spacing.s,
     paddingLeft: theme.spacing.m,
     borderBottomWidth: 0.5,
     borderBottomColor: theme.colors.border,
   },
-  // Styl tekstu podzadania
   subtaskText: {
-    flex: 1, // Zajmuje dostępne miejsce
+    flex: 1,
     fontSize: 16,
     color: theme.colors.text,
     fontFamily: 'TitilliumWeb_400Regular',
   },
-  // Kontener na przyciski (Edytuj / Usuń)
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  // Pojedynczy przycisk akcji
   actionButton: {
     padding: 5,
     marginLeft: 5,
   },
-  // Styl inputa podczas edycji (żeby się wyróżniał)
   editInput: {
     borderColor: theme.colors.primary,
     backgroundColor: theme.colors.card,
   },
-
   priorityNormal: {
     opacity: 0.5,
     marginHorizontal: theme.spacing.s,
