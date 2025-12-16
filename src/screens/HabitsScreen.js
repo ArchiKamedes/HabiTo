@@ -156,7 +156,14 @@ const HabitsScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      
+    <ScrollView 
+      style={styles.mainContainer}
+      contentContainerStyle={{ 
+          paddingTop: insets.top + 40, 
+          paddingBottom: insets.bottom + 50
+
+      }}
+    >
       <View style={styles.topRowContainer}>
         <View style={styles.titleContainer}>
           <Text style={styles.headerTitle} accessibilityRole="header">Nawyki</Text>
@@ -297,7 +304,7 @@ const HabitsScreen = ({ navigation }) => {
           </View>
         </Pressable>
       </Modal>
-
+    </ScrollView>
     </View>
   );
 };
@@ -330,7 +337,7 @@ const getStyles = (theme) => StyleSheet.create({
   },
   headerTitle: {
     fontSize: 32,
-    fontFamily: 'TitilliumWeb_700Bold',
+    fontFamily: 'TitilliumWeb_400Regular',
     color: theme.colors.text,
   },
   addButtonContainer: {
