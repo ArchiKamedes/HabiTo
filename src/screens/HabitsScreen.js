@@ -155,58 +155,57 @@ const HabitsScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-    <ScrollView 
-      style={styles.mainContainer}
-      contentContainerStyle={{ 
-          paddingTop: insets.top + 40, 
-          paddingBottom: insets.bottom + 50
-
-      }}
-    >
-      <View style={styles.topRowContainer}>
-        <View style={styles.titleContainer}>
-          <Text style={styles.headerTitle} accessibilityRole="header">Nawyki</Text>
-        </View>
-        <Pressable 
-          style={({ pressed }) => [styles.addButtonContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}
-          onPress={() => navigation.navigate('HabitAdd')} 
-          accessible={true}
-          accessibilityLabel="Dodaj nowy nawyk"
-          accessibilityRole="button"
-        >
-          <View style={styles.addShape}> 
-            <FontAwesome5 name='plus' size={24} color="white" /> 
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <ScrollView 
+        contentContainerStyle={{ 
+            paddingTop: insets.top + 80, 
+            paddingBottom: insets.bottom + 100,
+            paddingHorizontal: theme.spacing.m, // <--- TUTAJ JEST NAPRAWA
+        }}
+      >
+        
+        <View style={styles.topRowContainer}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.headerTitle} accessibilityRole="header">Nawyki</Text>
           </View>
-        </Pressable>
-      </View>
-
-      <View style={styles.foldersContainer}>
-        <View style={styles.foldersChoiceContainer}>
-          <Text style={styles.placeholderText}>Folders Choice</Text>
+          <Pressable 
+            style={({ pressed }) => [styles.addButtonContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]}
+            onPress={() => navigation.navigate('HabitAdd')} 
+            accessible={true}
+            accessibilityLabel="Dodaj nowy nawyk"
+            accessibilityRole="button"
+          >
+            <View style={styles.addShape}> 
+              <FontAwesome5 name='plus' size={24} color="white" /> 
+            </View>
+          </Pressable>
         </View>
-        <Pressable 
-          style={({ pressed }) => [styles.addButtonContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]} 
-          accessible={true}
-          accessibilityLabel="Dodaj nowy folder"
-          accessibilityRole="button"
-        >
-          <View style={styles.folderAddShape}> 
-            <FontAwesome5 name='plus' size={24} color={theme.colors.primary} /> 
+
+        <View style={styles.foldersContainer}>
+          <View style={styles.foldersChoiceContainer}>
+            <Text style={styles.placeholderText}>Folders Choice</Text>
           </View>
-        </Pressable>
-      </View>
-
-      <View style={styles.dateRowContainer}>
-        <View style={styles.subtitleContainer}>
-          <Text style={styles.subtitleText} accessibilityRole="header">Dzisiejsze</Text>
+          <Pressable 
+            style={({ pressed }) => [styles.addButtonContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]} 
+            accessible={true}
+            accessibilityLabel="Dodaj nowy folder"
+            accessibilityRole="button"
+          >
+            <View style={styles.folderAddShape}> 
+              <FontAwesome5 name='plus' size={24} color={theme.colors.primary} /> 
+            </View>
+          </Pressable>
         </View>
-        <View style={styles.dateContainer}>
-          <Text style={styles.dateText} accessibilityLabel={`Data: ${formattedDate}`}>{formattedDate}</Text>
-        </View>
-      </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+        <View style={styles.dateRowContainer}>
+          <View style={styles.subtitleContainer}>
+            <Text style={styles.subtitleText} accessibilityRole="header">Dzisiejsze</Text>
+          </View>
+          <View style={styles.dateContainer}>
+            <Text style={styles.dateText} accessibilityLabel={`Data: ${formattedDate}`}>{formattedDate}</Text>
+          </View>
+        </View>
+
         <View style={styles.listContainer}>
           <FlatList
             data={todayHabits}
@@ -236,85 +235,80 @@ const HabitsScreen = ({ navigation }) => {
             scrollEnabled={false}
           />
         </View>
-      </ScrollView>
 
-      <Modal animationType="fade" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
-        <Pressable 
-          style={styles.modalOverlay} 
-          onPress={() => setModalVisible(false)} 
-          accessible={true} 
-          accessibilityLabel="Zamknij okno szczegółów"
-          accessibilityRole="button"
-        >
-          <View style={styles.modalContent} accessible={true} accessibilityViewIsModal={true}>
-            {selectedHabit && (
-              <>
-                <View style={[styles.modalIconCircle, { backgroundColor: selectedHabit.color }]}>
-                   <FontAwesome5 name={selectedHabit.icon} size={30} color="white" />
-                </View>
-                <Text style={styles.modalTitle} accessibilityRole="header">{selectedHabit.habitName}</Text>
-                
-                <View style={styles.detailsContainer} accessible={true} accessibilityLabel="Szczegóły nawyku">
+        <Modal animationType="fade" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+          <Pressable 
+            style={styles.modalOverlay} 
+            onPress={() => setModalVisible(false)} 
+            accessible={true} 
+            accessibilityLabel="Zamknij okno szczegółów"
+            accessibilityRole="button"
+          >
+            <View style={styles.modalContent} accessible={true} accessibilityViewIsModal={true}>
+              {selectedHabit && (
+                <>
+                  <View style={[styles.modalIconCircle, { backgroundColor: selectedHabit.color }]}>
+                     <FontAwesome5 name={selectedHabit.icon} size={30} color="white" />
+                  </View>
+                  <Text style={styles.modalTitle} accessibilityRole="header">{selectedHabit.habitName}</Text>
                   
-                  <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Folder:</Text>
-                      <Text style={styles.detailValue}>{selectedHabit.folder || 'Brak'}</Text>
+                  <View style={styles.detailsContainer} accessible={true} accessibilityLabel="Szczegóły nawyku">
+                    
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Folder:</Text>
+                        <Text style={styles.detailValue}>{selectedHabit.folder || 'Brak'}</Text>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Tryb:</Text>
+                        <Text style={styles.detailValue}>{getFrequencyText(selectedHabit)}</Text>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Godzina:</Text>
+                        <Text style={styles.detailValue}>{getTimeText(selectedHabit)}</Text>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Cel:</Text>
+                        <Text style={styles.detailValue}>{selectedHabit.timesPerDay} razy dziennie</Text>
+                    </View>
+
                   </View>
 
-                  <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Tryb:</Text>
-                      <Text style={styles.detailValue}>{getFrequencyText(selectedHabit)}</Text>
+                  <View style={styles.modalButtons}>
+                     <TouchableOpacity 
+                        style={[styles.actionBtn, {backgroundColor: theme.colors.primary}]} 
+                        onPress={handleEdit}
+                        accessible={true}
+                        accessibilityLabel="Edytuj nawyk"
+                        accessibilityRole="button"
+                     >
+                        <Text style={styles.btnText}>Edytuj</Text>
+                     </TouchableOpacity>
+                     
+                     <TouchableOpacity 
+                        style={[styles.actionBtn, {backgroundColor: '#FF4500'}]} 
+                        onPress={handleDelete}
+                        accessible={true}
+                        accessibilityLabel="Usuń nawyk"
+                        accessibilityRole="button"
+                     >
+                        <Text style={styles.btnText}>Usuń</Text>
+                     </TouchableOpacity>
                   </View>
+                </>
+              )}
+            </View>
+          </Pressable>
+        </Modal>
 
-                  <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Godzina:</Text>
-                      <Text style={styles.detailValue}>{getTimeText(selectedHabit)}</Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Cel:</Text>
-                      <Text style={styles.detailValue}>{selectedHabit.timesPerDay} razy dziennie</Text>
-                  </View>
-
-                </View>
-
-                <View style={styles.modalButtons}>
-                   <TouchableOpacity 
-                      style={[styles.actionBtn, {backgroundColor: theme.colors.primary}]} 
-                      onPress={handleEdit}
-                      accessible={true}
-                      accessibilityLabel="Edytuj nawyk"
-                      accessibilityRole="button"
-                   >
-                      <Text style={styles.btnText}>Edytuj</Text>
-                   </TouchableOpacity>
-                   
-                   <TouchableOpacity 
-                      style={[styles.actionBtn, {backgroundColor: '#FF4500'}]} 
-                      onPress={handleDelete}
-                      accessible={true}
-                      accessibilityLabel="Usuń nawyk"
-                      accessibilityRole="button"
-                   >
-                      <Text style={styles.btnText}>Usuń</Text>
-                   </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </Pressable>
-      </Modal>
-    </ScrollView>
+      </ScrollView>
     </View>
   );
 };
 
 const getStyles = (theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.m,
-  },
   topRowContainer: {
     flexDirection: 'row',
     alignItems: 'center', 

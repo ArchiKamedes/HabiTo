@@ -261,7 +261,7 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingTop: insets.top + 20, paddingBottom: 100 }}>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingTop: insets.top + 50, paddingBottom: 100 }}>
         
         <View style={styles.titleContainer}>
           <Text style={styles.titleText} accessibilityRole="header">Nawyki</Text>
