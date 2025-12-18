@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView, Pressable, Alert } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import ModalDropdown from 'react-native-modal-dropdown';
-import { collection, addDoc, serverTimestamp, Timestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp, doc, updateDoc, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
 import ColorPickerModal from '../components/ColorPickerModal';
+import AddFolderModal from '../components/AddFolderModal';
 
 const WEEKDAYS = [
   { short: 'Pn', long: 'Poniedziałek', id: 1 },
@@ -26,11 +27,16 @@ const HabitAddScreen = ({ navigation, route }) => {
   
   const { habitToEdit } = route.params || {};
   const isEditing = !!habitToEdit;
+  const user = auth.currentUser;
 
   const [habitName, setHabitName] = useState('');
   const [icon, setIcon] = useState('briefcase');
   const [color, setColor] = useState(theme.colors.primary);
-  const [folder, setFolder] = useState('Studia');
+  
+  const [folder, setFolder] = useState(''); 
+  const [availableFolders, setAvailableFolders] = useState([]); 
+  const [isFolderModalVisible, setIsFolderModalVisible] = useState(false);
+
   const [timesPerDay, setTimesPerDay] = useState('1');
   const [repeatMode, setRepeatMode] = useState('Codziennie');
   const [repeatValueX, setRepeatValueX] = useState('3');
@@ -49,7 +55,7 @@ const HabitAddScreen = ({ navigation, route }) => {
       setHabitName(habitToEdit.habitName || '');
       setIcon(habitToEdit.icon || 'briefcase');
       setColor(habitToEdit.color || theme.colors.primary);
-      setFolder(habitToEdit.folder || 'Studia');
+      setFolder(habitToEdit.folder || '');
       setTimesPerDay(String(habitToEdit.timesPerDay || '1'));
       setRepeatMode(habitToEdit.repeatMode || 'Codziennie');
       setRepeatValueX(String(habitToEdit.repeatValueX || '3'));
@@ -141,10 +147,47 @@ const HabitAddScreen = ({ navigation, route }) => {
     }
   };
 
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(
+      collection(db, 'users', user.uid, 'HabitsFolders'), 
+      orderBy('createdAt', 'asc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const foldersData = snapshot.docs.map(doc => doc.data().name);
+      setAvailableFolders(foldersData);
+
+      if (foldersData.length === 0) {
+        Alert.alert(
+          "Brak folderów",
+          "Aby stworzyć nawyk, musisz najpierw utworzyć folder (kategorię).",
+          [{ text: "OK", onPress: () => setIsFolderModalVisible(true) }]
+        );
+      } else {
+        if (!isEditing && !folder) {
+            setFolder(foldersData[0]);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+  
   const handleSaveHabit = async () => {
-    const user = auth.currentUser; 
+    if (availableFolders.length === 0) {
+        Alert.alert("Brak folderów", "Najpierw utwórz folder!");
+        setIsFolderModalVisible(true);
+        return;
+    }
+    if (!folder) {
+        Alert.alert("Wybierz folder", "Folder jest wymagany.");
+        return;
+    }
 
     if (!user || habitName.trim() === '') {
+      Alert.alert("Błąd", "Podaj nazwę nawyku.");
       return; 
     }
 
@@ -169,7 +212,6 @@ const HabitAddScreen = ({ navigation, route }) => {
       timeMode,
       notificationTimes: timeMode === 'Taka sama godzina' ? sameTimes : differentTimes,
       userId: user.uid,
-      // Nie nadpisujemy dat wykonania/pominięcia przy edycji, chyba że to nowy nawyk
       ...(isEditing ? {} : {
           completedDates: [],
           skippedDates: [],
@@ -265,24 +307,41 @@ const HabitAddScreen = ({ navigation, route }) => {
         </TouchableOpacity>
 
         <ModalDropdown
-          options={['Studia', 'Praca', 'Dom']}
+          options={availableFolders.length > 0 ? availableFolders : ['Brak folderów']}
           defaultIndex={0}
-          defaultValue={folder}
-          onSelect={(index, value) => setFolder(value)}
+          defaultValue={folder || (availableFolders.length > 0 ? availableFolders[0] : 'Brak folderów')}
+          onSelect={(index, value) => {
+             if (availableFolders.length > 0) setFolder(value);
+          }}
           dropdownStyle={styles.dropdownList}
           dropdownTextStyle={styles.dropdownText}
           dropdownTextHighlightStyle={styles.dropdownTextHighlight}
+          disabled={availableFolders.length === 0}
         >
           <View 
             style={styles.row}
             accessible={true}
-            accessibilityLabel={`Folder: ${folder}`}
-            accessibilityHint="Kliknij, aby zmienić folder"
+            accessibilityLabel={`Folder: ${folder || 'Brak'}. Kliknij aby zmienić.`}
             accessibilityRole="button"
           > 
             <Ionicons name="folder-outline" size={24} color={theme.colors.text} style={styles.icon} />
             <Text style={styles.label}>Folder</Text>
-            <Text style={styles.valueText}>{folder}</Text>
+            
+            {availableFolders.length === 0 ? (
+                <Text style={[styles.valueText, {color: '#FF4500'}]}>Utwórz folder!</Text>
+            ) : (
+                <Text style={styles.valueText}>{folder || 'Wybierz'}</Text>
+            )}
+
+            <TouchableOpacity 
+                style={{marginLeft: 10}} 
+                onPress={(e) => {
+                    e.stopPropagation();
+                    setIsFolderModalVisible(true);
+                }}
+            >
+                <Ionicons name="add-circle" size={26} color={theme.colors.primary} />
+            </TouchableOpacity>
           </View>
         </ModalDropdown>
 
@@ -478,6 +537,12 @@ const HabitAddScreen = ({ navigation, route }) => {
         onClose={() => setIsColorModalVisible(false)}
         onSelectColor={(selectedColor) => setColor(selectedColor)}
         selectedColor={color}
+      />
+
+      <AddFolderModal 
+        visible={isFolderModalVisible}
+        onClose={() => setIsFolderModalVisible(false)}
+        type="habit" 
       />
     </ScrollView>
   );
