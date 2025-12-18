@@ -1,69 +1,67 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Modal, Pressable, Alert } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
-
-// Importy Firebase
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
 
-const AddFolderModal = ({ visible, onClose, defaultFolderType }) => {
+const AddFolderModal = ({ visible, onClose, type }) => {
   const { theme } = useTheme();
   const styles = getStyles(theme);
 
-  // Stany dla formularza
   const [folderName, setFolderName] = useState('');
-  const [icon, setIcon] = useState('briefcase'); // Domyślna ikona
-  
-  // Ten stan jest kontrolowany przez ekran nadrzędny
-  const [folderType, setFolderType] = useState(defaultFolderType);
+  const [icon, setIcon] = useState('briefcase');
+  const [selectedType, setSelectedType] = useState(type || 'task');
 
-  // Aktualizuj stan, jeśli zmieni się prop (np. przy ponownym otwarciu)
   useEffect(() => {
-    setFolderType(defaultFolderType);
-  }, [defaultFolderType]);
+    if (type) {
+      setSelectedType(type);
+    }
+  }, [type, visible]);
 
   const handleAddFolder = async () => {
     const user = auth.currentUser;
     if (!user || folderName.trim() === '') {
-      alert('Proszę podać nazwę folderu.');
+      Alert.alert('Błąd', 'Proszę podać nazwę folderu.');
       return;
     }
 
-    // Określ docelową kolekcję na podstawie typu
-    const collectionName = folderType === 'task' ? 'TaskFolders' : 'HabitsFolders';
+    const collectionName = selectedType === 'habit' ? 'HabitsFolders' : 'TaskFolders';
     
     try {
-      // Ścieżka do podkolekcji użytkownika
       const folderCollectionRef = collection(db, 'users', user.uid, collectionName);
       
       await addDoc(folderCollectionRef, {
         name: folderName.trim(),
         icon: icon,
-        color: theme.colors.primary, // Domyślny kolor
+        color: theme.colors.primary,
         createdAt: serverTimestamp(),
-        // Nie musimy tu zapisywać typu, bo jest on określony przez nazwę kolekcji
       });
 
-      console.log(`Folder ${folderType} dodany!`);
-      handleClose(); // Zamknij i zresetuj
+      handleClose();
     } catch (error) {
-      console.error("Błąd podczas dodawania folderu: ", error);
-      alert('Nie udało się dodać folderu.');
+      console.error(error);
+      Alert.alert('Błąd', 'Nie udało się dodać folderu.');
     }
   };
 
   const handleClose = () => {
-    setFolderName(''); // Resetuj nazwę
-    setIcon('briefcase'); // Resetuj ikonę
-    onClose(); // Zamknij modal
+    setFolderName('');
+    setIcon('briefcase');
+    onClose();
   };
 
-  // Niestandardowy Radio Button
-  const RadioButton = ({ label, selected, onSelect }) => (
-    <Pressable style={styles.radioRow} onPress={onSelect} disabled={true}>
-      <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
-        {selected && <View style={styles.radioInner} />}
+  const RadioButton = ({ label, value, current, onSelect }) => (
+    <Pressable 
+      style={styles.radioRow} 
+      onPress={() => onSelect(value)}
+      accessible={true}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: current === value }}
+      accessibilityLabel={`Typ folderu: ${label}`}
+    >
+      <View style={[styles.radioOuter, current === value && styles.radioOuterSelected]}>
+        {current === value && <View style={styles.radioInner} />}
       </View>
       <Text style={styles.radioLabel}>{label}</Text>
     </Pressable>
@@ -72,49 +70,70 @@ const AddFolderModal = ({ visible, onClose, defaultFolderType }) => {
   return (
     <Modal
       animationType="fade"
-      transparent={true} // Przezroczyste tło
-      visible={visible} // Kontrolowane przez stan rodzica
+      transparent={true}
+      visible={visible}
       onRequestClose={handleClose}
     >
-      {/* Tło modala (przyciemnione) */}
       <Pressable style={styles.modalBackdrop} onPress={handleClose}>
         
-        {/* Kontener "mini-ekranu" (aby nie zamykał się po kliknięciu na niego) */}
         <Pressable style={styles.modalView}>
           
-          {/* Nagłówek (gradient) */}
           <View style={styles.header}>
-            <TextInput style={styles.titleInput} placeholder="Nazwa Folderu" placeholderTextColor="#FFFFFF90"  value={folderName} onChangeText={setFolderName}/>
-            <Pressable onPress={handleClose} style={styles.closeButton}>
+            <TextInput 
+                style={styles.titleInput} 
+                placeholder="Nazwa Folderu" 
+                placeholderTextColor="#FFFFFF90"  
+                value={folderName} 
+                onChangeText={setFolderName}
+                accessible={true}
+                accessibilityLabel="Wpisz nazwę nowego folderu"
+            />
+            <Pressable 
+              onPress={handleClose} 
+              style={styles.closeButton}
+              accessible={true}
+              accessibilityLabel="Zamknij okno"
+              accessibilityRole="button"
+            >
              <Ionicons name="close-circle" size={30} color="#FFFFFF" />
             </Pressable>
           </View>
-          {/* Ciało formularza */}
+
           <View style={styles.formContainer}>
             
-            {/* Wybór Ikony (na razie "zaślepka") */}
-            <Pressable style={styles.row}>
+            <Pressable 
+              style={styles.row}
+              accessible={true}
+              accessibilityLabel={`Wybrana ikona: ${icon}`}
+            >
               <View style={styles.iconPreview}>
                 <FontAwesome5 name={icon} size={24} color={theme.colors.text} />
               </View>
               <Text style={styles.label}>Ikona</Text>
             </Pressable>
             
-            {/* Wybór typu folderu */}
-            <RadioButton 
-              label="Zadania"
-              selected={folderType === 'task'}
-              // Na razie blokujemy możliwość zmiany
-              // onSelect={() => setFolderType('task')} 
-            />
-            <RadioButton 
-              label="Nawyk"
-              selected={folderType === 'habit'}
-              // onSelect={() => setFolderType('habit')}
-            />
+            <View style={styles.radioGroup} accessible={true} accessibilityRole="radiogroup">
+              <RadioButton 
+                label="Zadania"
+                value="task"
+                current={selectedType}
+                onSelect={setSelectedType}
+              />
+              <RadioButton 
+                label="Nawyki"
+                value="habit"
+                current={selectedType}
+                onSelect={setSelectedType}
+              />
+            </View>
 
-            {/* Przycisk Dodaj */}
-            <Pressable style={styles.createButton} onPress={handleAddFolder}>
+            <Pressable 
+              style={styles.createButton} 
+              onPress={handleAddFolder}
+              accessible={true}
+              accessibilityLabel="Utwórz folder"
+              accessibilityRole="button"
+            >
               <Text style={styles.createButtonText}>Dodaj</Text>
             </Pressable>
 
@@ -125,11 +144,10 @@ const AddFolderModal = ({ visible, onClose, defaultFolderType }) => {
   );
 };
 
-// --- Style ---
 const getStyles = (theme) => StyleSheet.create({
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)', // Przyciemnione tło
+    backgroundColor: 'rgba(0,0,0,0.5)', 
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -137,7 +155,7 @@ const getStyles = (theme) => StyleSheet.create({
     width: '90%',
     backgroundColor: theme.colors.background,
     borderRadius: 24,
-    overflow: 'hidden', // Aby gradient nie wychodził poza rogi
+    overflow: 'hidden', 
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -189,10 +207,13 @@ const getStyles = (theme) => StyleSheet.create({
     color: theme.colors.text,
     fontFamily: 'TitilliumWeb_400Regular',
   },
+  radioGroup: {
+    marginTop: 10,
+  },
   radioRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.m,
+    paddingVertical: 10,
   },
   radioOuter: {
     width: 24,
@@ -216,6 +237,7 @@ const getStyles = (theme) => StyleSheet.create({
   radioLabel: {
     fontSize: 18,
     color: theme.colors.text,
+    fontFamily: 'TitilliumWeb_400Regular',
   },
   createButton: {
     backgroundColor: theme.colors.primary,
