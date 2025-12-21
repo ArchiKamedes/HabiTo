@@ -1,58 +1,64 @@
 import 'react-native-gesture-handler';
 import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
-import { auth } from './src/firebaseConfig'; // Ścieżka do skopiowanego pliku
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
-import RootStack from './src/navigation/RootStack';
-import { ThemeProvider } from './src/context/ThemeContext';
-import { useFonts, TitilliumWeb_400Regular, TitilliumWeb_700Bold } from '@expo-google-fonts/titillium-web'; // <-- 1. Import
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts, TitilliumWeb_400Regular, TitilliumWeb_700Bold } from '@expo-google-fonts/titillium-web';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './src/firebaseConfig';
+import { ThemeProvider } from './src/context/ThemeContext';
+
+import WelcomeScreen from './src/screens/WelcomeScreen';
+import RootStack from './src/navigation/RootStack';
 
 SplashScreen.preventAutoHideAsync();
 
+const Stack = createNativeStackNavigator();
+
+const AuthStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+    </Stack.Navigator>
+  );
+};
+
 export default function App() {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   let [fontsLoaded, fontError] = useFonts({
-    TitilliumWeb_400Regular, // Wersja zwykła
-    TitilliumWeb_700Bold,   // Wersja pogrubiona
+    TitilliumWeb_400Regular,
+    TitilliumWeb_700Bold,
   });
-
-  const onLayoutRootView = useCallback(async () => {
-    // Hide splash screen only when BOTH fonts are loaded AND Firebase is ready
-    if ((fontsLoaded || fontError) && !isLoading) {
-      await SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError, isLoading]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
-        signInAnonymously(auth).catch((error) => {
-          console.error("Błąd logowania anonimowego:", error);
-        });
-      }
-      setIsLoading(false);
+      setUser(currentUser);
+      setIsAuthLoading(false);
     });
     return () => unsubscribe();
-  }, []); 
+  }, []);
 
-  if ((!fontsLoaded && !fontError) || isLoading) {
+  const onLayoutRootView = useCallback(async () => {
+    if ((fontsLoaded || fontError) && !isAuthLoading) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError, isAuthLoading]);
+
+  if ((!fontsLoaded && !fontError) || isAuthLoading) {
     return null;
   }
 
-return (
-  <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-    <ThemeProvider>
-      <NavigationContainer>
-        <RootStack />
-      </NavigationContainer>
-    </ThemeProvider>
-  </View>
+  return (
+    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <ThemeProvider>
+        <NavigationContainer>
+          {user ? <RootStack /> : <AuthStack />}
+        </NavigationContainer>
+      </ThemeProvider>
+    </View>
   );
 }
 
