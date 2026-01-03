@@ -283,10 +283,6 @@ const TasksScreen = ({ navigation }) => {
                       <Ionicons name="trash" size={20} color="white" />
                       <Text style={styles.modalButtonText}>Usuń</Text>
                     </TouchableOpacity>
-
-                                <TouchableOpacity>
-            <View style={{width: 100, height: 50, backgroundColor: 'blue'}} />
-            </TouchableOpacity>
                   </View>
                 </>
               )}
@@ -394,12 +390,12 @@ const getStyles = (theme) => StyleSheet.create({
     fontFamily: 'TitilliumWeb_400Regular',
   },
   SubTytlesText:{
-    color: theme.colors.text,  
+    color: theme.colors.text,
     fontSize: 22,
     fontFamily: 'TitilliumWeb_400Regular',
   },
   dateText:{
-    color: theme.colors.text, 
+    color: theme.colors.text,
     fontSize: 22,
     fontFamily: 'TitilliumWeb_700Bold,',
   },
