@@ -160,7 +160,7 @@ const HabitsScreen = ({ navigation }) => {
         contentContainerStyle={{ 
             paddingTop: insets.top + 80, 
             paddingBottom: insets.bottom + 100,
-            paddingHorizontal: theme.spacing.m, // <--- TUTAJ JEST NAPRAWA
+            paddingHorizontal: theme.spacing.m,
         }}
       >
         

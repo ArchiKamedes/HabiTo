@@ -283,6 +283,10 @@ const TasksScreen = ({ navigation }) => {
                       <Ionicons name="trash" size={20} color="white" />
                       <Text style={styles.modalButtonText}>Usuń</Text>
                     </TouchableOpacity>
+
+                                <TouchableOpacity>
+            <View style={{width: 100, height: 50, backgroundColor: 'blue'}} />
+            </TouchableOpacity>
                   </View>
                 </>
               )}
