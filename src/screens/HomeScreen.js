@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, StyleSheet, ScrollView, TouchableOpacity, Modal, Alert, Pressable } from 'react-native';
+import { View, Text, FlatList, ScrollView, TouchableOpacity, Modal, Alert, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import TaskItem from '../components/TaskItem';
@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { getStyles } from '.styles/HomeScreen.styles';
 
 const HomeScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -370,153 +371,5 @@ const HomeScreen = ({ navigation }) => {
     </GestureHandlerRootView>
   );
 };
-
-const getStyles = (theme) => StyleSheet.create({
-  container: {
-    flex: 1, 
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.m, 
-  },
-  titleContainer: {
-    padding: theme.spacing.s,
-    marginTop: theme.spacing.m,
-  },
-  titleText:{
-    color: theme.colors.text, 
-    fontSize: 28,
-    fontFamily: 'TitilliumWeb_400Regular',
-  },
-  elementsContainer: {
-    padding: theme.spacing.m,
-    backgroundColor: theme.colors.card,
-    borderRadius: 20,
-    marginBottom: theme.spacing.l,
-    minHeight: 100, 
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  emptyListText: {
-    color: theme.colors.inactive,
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 16,
-    fontFamily: 'TitilliumWeb_400Regular',
-  },
-  leftAction: {
-    backgroundColor: '#FF4500', 
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    paddingLeft: 20,
-    borderRadius: 16,
-    marginBottom: theme.spacing.m,
-    height: '100%', 
-    flex: 1,
-  },
-  actionText: {
-    color: 'white',
-    fontWeight: '600',
-    paddingHorizontal: 10,
-  },
-  skippedItem: {
-    opacity: 0.5,
-  },
-  skippedOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  skippedText: {
-    color: '#FF4500',
-    fontWeight: 'bold',
-    fontSize: 14,
-    transform: [{ rotate: '-10deg' }],
-    borderWidth: 2,
-    borderColor: '#FF4500',
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 5,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '85%',
-    backgroundColor: theme.colors.card,
-    borderRadius: 20,
-    padding: 25,
-    alignItems: 'center',
-    elevation: 5,
-  },
-  modalIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontFamily: 'TitilliumWeb_700Bold',
-    color: theme.colors.text,
-    marginBottom: 10,
-  },
-  statsContainer: {
-    width: '100%',
-    padding: 10,
-    backgroundColor: theme.colors.background,
-    borderRadius: 10,
-    marginBottom: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statBox: { 
-    alignItems: 'center',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: theme.colors.inactive,
-    marginBottom: 5,
-    fontFamily: 'TitilliumWeb_400Regular',
-  },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-  },
-  modalButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 10,
-  },
-  modalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    width: '45%',
-  },
-  editButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  deleteButton: {
-    backgroundColor: '#FF4500',
-  },
-  modalButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    marginLeft: 5,
-  },
-});
 
 export default HomeScreen;

@@ -1,0 +1,169 @@
+import { StyleSheet } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+
+const getStyles = (theme) => StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    backgroundColor: theme.colors.primary, 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.m,
+    paddingVertical: theme.spacing.s,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    borderTopColor: 'transparent', 
+  },
+  titleInput: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.text2,
+    fontFamily: 'TitilliumWeb_700Bold',
+  },
+    bottomBar: {
+    backgroundColor: theme.colors.primary, 
+    height:30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.m,
+    paddingVertical: theme.spacing.s,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopColor: 'transparent', 
+  },
+  formContainer: {
+    paddingHorizontal: theme.spacing.m,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.m,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  rowContent: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  icon: {
+    marginRight: theme.spacing.m,
+  },
+  label: {
+    flex: 1, 
+    fontSize: 18,
+    color: theme.colors.text,
+    fontFamily: 'TitilliumWeb_400Regular',
+  },
+  valueText: {
+    fontSize: 16,
+    color: theme.colors.inactive,
+    fontFamily: 'TitilliumWeb_400Regular',
+  },
+  colorCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: theme.spacing.m,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  dropdownList: {
+    width: 180,
+    maxHeight: 200,
+    borderColor: theme.colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginTop: -40,
+    backgroundColor: theme.colors.card,
+  },
+  dropdownText: {
+    fontSize: 18,
+    color: theme.colors.text,
+    padding: theme.spacing.s,
+    borderRadius: 8,
+    backgroundColor: theme.colors.card,
+  },
+  subtaskSection: {
+    paddingVertical: theme.spacing.m,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  subtaskItem: {
+    fontSize: 16,
+    color: theme.colors.text,
+    paddingLeft: theme.spacing.m,
+    marginTop: theme.spacing.s,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: theme.spacing.m,
+  },
+  subtaskInput: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.s,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    color: theme.colors.text,
+    marginRight: theme.spacing.s,
+  },
+  addSubtaskButton: {},
+  priorityContainer: {
+    flexDirection: 'row',
+  },
+  subtaskRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between', 
+    paddingVertical: theme.spacing.s,
+    paddingLeft: theme.spacing.m,
+    borderBottomWidth: 0.5,
+    borderBottomColor: theme.colors.border,
+  },
+  subtaskText: {
+    flex: 1, 
+    fontSize: 16,
+    color: theme.colors.text,
+    fontFamily: 'TitilliumWeb_400Regular',
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
+    padding: 5,
+    marginLeft: 5,
+  },
+  editInput: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.card,
+  },
+  priorityNormal: {
+    opacity: 0.5,
+    marginHorizontal: theme.spacing.s,
+  },
+  prioritySelected: {
+    opacity: 1,
+    marginHorizontal: theme.spacing.s,
+  },
+  createButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 25,
+    padding: theme.spacing.m,
+    alignItems: 'center',
+    margin: theme.spacing.m,
+    marginTop: theme.spacing.l,
+  },
+  createButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontFamily: 'TitilliumWeb_700Bold',
+  }
+});

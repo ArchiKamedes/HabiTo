@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text,FlatList, TouchableOpacity } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { db, auth } from '../firebaseConfig';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { getStyles } from '.styles/CalendarScreen.styles';
 
 LocaleConfig.locales['pl'] = {
   monthNames: ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'],
@@ -119,7 +120,7 @@ const CalendarScreen = ({ navigation }) => {
             <FontAwesome5 
                 name={content.icon || (isTask ? 'tasks' : 'leaf')} 
                 size={24} 
-                color={theme.colors.text} 
+                color={theme.colors.text}
             />
         </View>
         <View>
@@ -202,81 +203,4 @@ const CalendarScreen = ({ navigation }) => {
     </View>
   );
 };
-
-const getStyles = (theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    marginTop: 80,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.m,
-    marginBottom: 10,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontFamily: 'TitilliumWeb_400Regular',
-    color: theme.colors.text,
-  },
-  calendar: {
-    marginBottom: 10,
-    borderRadius: 16,
-    marginHorizontal: theme.spacing.m,
-    elevation: 3,
-    paddingBottom: 10,
-  },
-  arrowContainer: {
-    padding: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listContainer: {
-    flex: 1,
-    paddingHorizontal: theme.spacing.m,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontFamily: 'TitilliumWeb_700Bold',
-    color: theme.colors.text,
-    marginBottom: 15,
-    marginTop: 10,
-  },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.card,
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 12,
-    alignItems: 'center',
-    borderLeftWidth: 6,
-    elevation: 2,
-  },
-  iconBox: {
-    width: 50,
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  cardTitle: {
-    fontSize: 18,
-    color: theme.colors.text,
-    fontFamily: 'TitilliumWeb_700Bold',
-    marginBottom: 4,
-  },
-  cardSub: {
-    fontSize: 14,
-    color: theme.colors.inactive,
-    fontFamily: 'TitilliumWeb_400Regular',
-  },
-  emptyText: {
-    color: theme.colors.inactive,
-    textAlign: 'center',
-    marginTop: 30,
-    fontSize: 18,
-    fontFamily: 'TitilliumWeb_400Regular',
-  }
-});
-
 export default CalendarScreen;

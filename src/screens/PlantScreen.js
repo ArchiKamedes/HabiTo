@@ -1,11 +1,12 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei'; // Pozwala obracać kamerą
 import { db, auth } from '../firebaseConfig';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import Platform3D from '../components/Platform3D';
 import { calculateHexPosition } from '../utils/hexMath'; // Nasza matematyka
+import { getStyles } from '.styles/PlantScreen.styles';
 
 const PlantScreen = () => {
   const [habits, setHabits] = useState([]);
@@ -52,12 +53,5 @@ return (
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212', // Ciemne tło kosmosu/ogrodu
-  },
-});
 
 export default PlantScreen;
