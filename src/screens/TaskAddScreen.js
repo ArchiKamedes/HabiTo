@@ -10,6 +10,7 @@ import { db, auth } from '../firebaseConfig';
 import ColorPickerModal from '../components/ColorPickerModal';
 import AddFolderModal from '../components/AddFolderModal';
 import { getStyles } from '.styles/TaskAddScreen.styles';
+import IconPickerModal from '../components/IconPickerModal';
 
 const TaskAddScreen = ({ navigation, route }) => {
   const { theme } = useTheme();

@@ -10,6 +10,7 @@ import { db, auth } from '../firebaseConfig';
 import ColorPickerModal from '../components/ColorPickerModal';
 import AddFolderModal from '../components/AddFolderModal';
 import { getStyles } from '.styles/HabitAddScreen.styles';
+import IconPickerModal from '../components/IconPickerModal';
 
 const WEEKDAYS = [
   { short: 'Pn', long: 'Poniedziałek', id: 1 },
@@ -545,9 +546,15 @@ const HabitAddScreen = ({ navigation, route }) => {
         onClose={() => setIsFolderModalVisible(false)}
         type="habit" 
       />
+
+      <IconPickerModal
+        visible={isIconPickerVisible}
+        onClose={() => setIconPickerVisible(false)}
+        onSelectIcon={(newIcon) => setIcon(newIcon)}
+        currentIcon={icon}
+      />
     </ScrollView>
   );
 };
-
 
 export default HabitAddScreen;
