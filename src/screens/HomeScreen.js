@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import { getStyles } from '.styles/HomeScreen.styles';
+import { getStyles } from '../styles/HomeScreen.styles';
 
 const HomeScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();

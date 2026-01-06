@@ -9,7 +9,7 @@ import { collection, addDoc, serverTimestamp, Timestamp, doc, updateDoc, query, 
 import { db, auth } from '../firebaseConfig';
 import ColorPickerModal from '../components/ColorPickerModal';
 import AddFolderModal from '../components/AddFolderModal';
-import { getStyles } from '.styles/HabitAddScreen.styles';
+import { getStyles } from '../styles/HabitAddScreen.styles';
 import IconPickerModal from '../components/IconPickerModal';
 
 const WEEKDAYS = [
@@ -38,6 +38,7 @@ const HabitAddScreen = ({ navigation, route }) => {
   const [folder, setFolder] = useState(''); 
   const [availableFolders, setAvailableFolders] = useState([]); 
   const [isFolderModalVisible, setIsFolderModalVisible] = useState(false);
+  const [isIconPickerVisible, setIconPickerVisible] = useState(false);
 
   const [timesPerDay, setTimesPerDay] = useState('1');
   const [repeatMode, setRepeatMode] = useState('Codziennie');
@@ -284,6 +285,7 @@ const HabitAddScreen = ({ navigation, route }) => {
       
         <TouchableOpacity 
           style={styles.row}
+          onPress={() => setIconPickerVisible(true)}
           accessible={true}
           accessibilityLabel={`Ikona nawyku: ${icon}`}
           accessibilityRole="button"

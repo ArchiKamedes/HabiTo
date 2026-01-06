@@ -2,11 +2,10 @@ import React from 'react';
 import { View, Text, Switch } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getStyles } from '.styles/SettingsScreen.styles';
+import { getStyles } from '../styles/SettingsScreen.styles';
 
 
 const SettingsScreen = () => {
-  // Pobieramy motyw ORAZ funkcję do jego zmiany
   const { theme, toggleTheme } = useTheme(); 
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();

@@ -8,7 +8,7 @@ import AddFolderModal from '../components/AddFolderModal';
 import { db, auth } from '../firebaseConfig';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
-import { getStyles } from '.styles/TasksScreen.styles';
+import { getStyles } from '../styles/TasksScreen.styles';
 
 const TasksScreen = ({ navigation }) => { 
   const insets = useSafeAreaInsets();

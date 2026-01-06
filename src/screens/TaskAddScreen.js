@@ -9,8 +9,8 @@ import { collection, addDoc, serverTimestamp, doc, updateDoc, query, where, onSn
 import { db, auth } from '../firebaseConfig';
 import ColorPickerModal from '../components/ColorPickerModal';
 import AddFolderModal from '../components/AddFolderModal';
-import { getStyles } from '.styles/TaskAddScreen.styles';
-import IconPickerModal from '../components/IconPickerModal';
+import { getStyles } from '../styles/TaskAddScreen.styles';
+import IconPickerModal from '../components/IconPickerModal'; // <--- Upewnij się, że masz ten import
 
 const TaskAddScreen = ({ navigation, route }) => {
   const { theme } = useTheme();
@@ -32,6 +32,8 @@ const TaskAddScreen = ({ navigation, route }) => {
   const [folder, setFolder] = useState(''); 
   const [availableFolders, setAvailableFolders] = useState([]); 
   const [isFolderModalVisible, setIsFolderModalVisible] = useState(false);
+  
+  const [isIconPickerVisible, setIsIconPickerVisible] = useState(false); // <--- NOWY STAN DLA IKON
 
   const [subtasks, setSubtasks] = useState([]);
   const [newSubtaskText, setNewSubtaskText] = useState(''); 
@@ -207,16 +209,19 @@ const TaskAddScreen = ({ navigation, route }) => {
 
       <View style={styles.formContainer}>
         
+        {/* --- PRZYCISK WYBORU IKONY --- */}
         <TouchableOpacity 
           style={styles.row}
+          onPress={() => setIsIconPickerVisible(true)} // Otwiera modal
           accessible={true}
-          accessibilityLabel={`Ikona zadania: ${icon}`}
+          accessibilityLabel={`Ikona zadania: ${icon}. Kliknij, aby zmienić.`}
           accessibilityRole="button"
         >
           <FontAwesome5 name={icon} size={24} color={theme.colors.text} style={styles.icon} />
           <Text style={styles.label}>Ikona</Text>
           <Text style={styles.valueText}>{icon}</Text>
         </TouchableOpacity>
+        {/* ----------------------------- */}
 
         <TouchableOpacity 
           style={styles.row} 
@@ -452,6 +457,15 @@ const TaskAddScreen = ({ navigation, route }) => {
         onSelectColor={(selectedColor) => setColor(selectedColor)} 
         selectedColor={color} 
       />
+
+      {/* --- KOMPONENT WYBORU IKON --- */}
+      <IconPickerModal
+        visible={isIconPickerVisible}
+        onClose={() => setIsIconPickerVisible(false)}
+        onSelectIcon={(selectedIcon) => setIcon(selectedIcon)}
+        currentIcon={icon}
+      />
+      {/* ----------------------------- */}
 
       <AddFolderModal 
         visible={isFolderModalVisible}

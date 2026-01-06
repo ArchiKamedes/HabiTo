@@ -6,7 +6,7 @@ import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../firebaseConfig';
 import { collection, query, onSnapshot, orderBy, doc, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import HabitItem from '../components/HabitItem';
-import { getStyles } from '.styles/HabitsScreen.styles';
+import { getStyles } from '../styles/HabitsScreen.styles';
 
 const HabitsScreen = ({ navigation }) => {
   const { theme } = useTheme();

@@ -6,7 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { db, auth } from '../firebaseConfig';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { getStyles } from '.styles/CalendarScreen.styles';
+import { getStyles } from '../styles/CalendarScreen.styles';
 
 LocaleConfig.locales['pl'] = {
   monthNames: ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'],

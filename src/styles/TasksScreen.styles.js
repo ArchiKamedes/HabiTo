@@ -1,5 +1,4 @@
 import { StyleSheet } from 'react-native';
-import { useTheme } from '../context/ThemeContext';
 
 export const getStyles = (theme) => StyleSheet.create({
   mainContainer: {

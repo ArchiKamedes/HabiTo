@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
+import IconPickerModal from './IconPickerModal';
 
 const AddFolderModal = ({ visible, onClose, type }) => {
   const { theme } = useTheme();
@@ -12,6 +13,7 @@ const AddFolderModal = ({ visible, onClose, type }) => {
   const [folderName, setFolderName] = useState('');
   const [icon, setIcon] = useState('briefcase');
   const [selectedType, setSelectedType] = useState(type || 'task');
+  const [isIconPickerVisible, setIconPickerVisible] = useState(false);
 
   useEffect(() => {
     if (type) {
@@ -103,8 +105,10 @@ const AddFolderModal = ({ visible, onClose, type }) => {
             
             <Pressable 
               style={styles.row}
+              onPress={() => setIconPickerVisible(true)}
               accessible={true}
-              accessibilityLabel={`Wybrana ikona: ${icon}`}
+              accessibilityLabel={`Wybrana ikona: ${icon}. Kliknij, aby zmienić.`}
+              accessibilityRole="button"
             >
               <View style={styles.iconPreview}>
                 <FontAwesome5 name={icon} size={24} color={theme.colors.text} />
@@ -140,6 +144,13 @@ const AddFolderModal = ({ visible, onClose, type }) => {
           </View>
         </Pressable>
       </Pressable>
+
+      <IconPickerModal
+        visible={isIconPickerVisible}
+        onClose={() => setIconPickerVisible(false)}
+        onSelectIcon={(newIcon) => setIcon(newIcon)}
+        currentIcon={icon}
+      />
     </Modal>
   );
 };

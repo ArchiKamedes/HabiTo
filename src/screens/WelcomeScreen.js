@@ -7,10 +7,11 @@ import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
+import { getStyles } from '../styles/WelcomeScreen.styles';
 
 const WelcomeScreen = () => {
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();r
   const styles = getStyles(theme);
 
   const handleLogout = () => {
