@@ -13,9 +13,24 @@ export const getStyles = (theme) => StyleSheet.create({
   },
   foldersContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: theme.spacing.m,
+    height: 60, 
+  },
+  folderItem: {
+    width: 50,      
+    height: 45,     
+    borderRadius: 15, 
+    backgroundColor: theme.colors.card, 
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10, 
+    borderWidth: 1,
+    borderColor: theme.colors.border || '#ccc', 
+  },
+  folderItemSelected: {
+    backgroundColor: theme.colors.primary, 
+    borderColor: theme.colors.primary,
   },
   daysContainer: {
     flexDirection: 'row',
@@ -25,13 +40,6 @@ export const getStyles = (theme) => StyleSheet.create({
   },
   titleTaskContainer: {
     padding: theme.spacing.s,
-  },
-  foldersChoiceContainer: {
-    flex: 1, 
-    padding: theme.spacing.m,
-    borderWidth: 1,
-    borderColor: 'black',
-    marginRight: theme.spacing.s,
   },
   foldersAddContainer: {
     padding: theme.spacing.s,
@@ -77,17 +85,13 @@ export const getStyles = (theme) => StyleSheet.create({
     elevation: 10,
   },
   folderAddShape:{
-    width: 75,
+    width: 55,
     height: 45,
-    borderRadius: 20,
+    borderRadius: 15,
     backgroundColor: theme.colors.active,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 10,
-  },
-  placeholderText: {
-    color: theme.colors.text,  
-    fontSize: 12,
   },
   titleTaskText:{
     color: theme.colors.text, 
@@ -102,7 +106,7 @@ export const getStyles = (theme) => StyleSheet.create({
   dateText:{
     color: theme.colors.text, 
     fontSize: 22,
-    fontFamily: 'TitilliumWeb_700Bold,', // Uwaga: w oryginale był przecinek w stringu, usuń go jeśli to błąd fontu
+    fontFamily: 'TitilliumWeb_700Bold', 
   },
   emptyListText: {
     color: theme.colors.inactive,

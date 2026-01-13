@@ -6,6 +6,7 @@ import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../firebaseConfig';
 import { collection, query, onSnapshot, orderBy, doc, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import HabitItem from '../components/HabitItem';
+import AddFolderModal from '../components/AddFolderModal';
 import { getStyles } from '../styles/HabitsScreen.styles';
 
 const HabitsScreen = ({ navigation }) => {
@@ -20,6 +21,10 @@ const HabitsScreen = ({ navigation }) => {
   const dayOfWeek = currentDate.getDay();
 
   const [habits, setHabits] = useState([]);
+  const [folders, setFolders] = useState([]);
+  const [selectedFolder, setSelectedFolder] = useState('all');
+  const [isFolderModalVisible, setIsFolderModalVisible] = useState(false);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedHabit, setSelectedHabit] = useState(null);
 
@@ -35,19 +40,38 @@ const HabitsScreen = ({ navigation }) => {
     return () => unsubscribe();
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'users', user.uid, 'HabitsFolders'), orderBy('createdAt', 'asc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const foldersData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setFolders(foldersData);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
   const todayHabits = useMemo(() => {
     return habits.filter(habit => {
+      const isFolderMatch = selectedFolder === 'all' || habit.folder === selectedFolder;
+      if (!isFolderMatch) return false;
+
       if (habit.repeatMode === 'Codziennie') return true;
       if (habit.repeatMode === 'Wybierz dni' && habit.selectedWeekdays) {
         return habit.selectedWeekdays.includes(dayOfWeek);
       }
       return false;
     });
-  }, [habits, dayOfWeek]);
+  }, [habits, dayOfWeek, selectedFolder]);
 
   const allHabits = useMemo(() => {
-    return habits;
-  }, [habits]);
+    return habits.filter(habit => {
+        return selectedFolder === 'all' || habit.folder === selectedFolder;
+    });
+  }, [habits, selectedFolder]);
 
   const handleToggleHabit = async (habit) => {
     if (!user) return;
@@ -183,11 +207,39 @@ const HabitsScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.foldersContainer}>
-          <View style={styles.foldersChoiceContainer}>
-            <Text style={styles.placeholderText}>Folders Choice</Text>
+          <View style={{ flex: 1, marginRight: 10 }}>
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={[{ id: 'all', name: 'Wszystkie', icon: 'layer-group' }, ...folders]}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingVertical: 5 }}
+              renderItem={({ item }) => {
+                const isSelected = selectedFolder === (item.id === 'all' ? 'all' : item.name);
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.folderItem,
+                      isSelected && styles.folderItemSelected
+                    ]}
+                    onPress={() => setSelectedFolder(item.id === 'all' ? 'all' : item.name)}
+                    accessible={true}
+                    accessibilityLabel={`Filtruj po folderze: ${item.name}`}
+                    accessibilityRole="button"
+                  >
+                    <FontAwesome5 
+                      name={item.icon || 'folder'} 
+                      size={20} 
+                      color={isSelected ? '#fff' : theme.colors.text} 
+                    />
+                  </TouchableOpacity>
+                );
+              }}
+            />
           </View>
           <Pressable 
             style={({ pressed }) => [styles.addButtonContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]} 
+            onPress={() => setIsFolderModalVisible(true)}
             accessible={true}
             accessibilityLabel="Dodaj nowy folder"
             accessibilityRole="button"
@@ -213,7 +265,7 @@ const HabitsScreen = ({ navigation }) => {
             keyExtractor={(item) => item.id}
             renderItem={renderHabitItem}
             ListEmptyComponent={
-              <Text style={styles.emptyText} accessible={true}>Brak nawyków na dziś.</Text>
+              <Text style={styles.emptyText} accessible={true}>Brak nawyków na dziś w tym folderze.</Text>
             }
             scrollEnabled={false}
           />
@@ -231,11 +283,13 @@ const HabitsScreen = ({ navigation }) => {
             keyExtractor={(item) => item.id}
             renderItem={renderHabitItem}
             ListEmptyComponent={
-              <Text style={styles.emptyText} accessible={true}>Brak nawyków.</Text>
+              <Text style={styles.emptyText} accessible={true}>Brak nawyków w tym folderze.</Text>
             }
             scrollEnabled={false}
           />
         </View>
+
+        <AddFolderModal visible={isFolderModalVisible} onClose={() => setIsFolderModalVisible(false)} defaultFolderType="habit"/>
 
         <Modal animationType="fade" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
           <Pressable 
@@ -249,7 +303,7 @@ const HabitsScreen = ({ navigation }) => {
               {selectedHabit && (
                 <>
                   <View style={[styles.modalIconCircle, { backgroundColor: selectedHabit.color }]}>
-                     <FontAwesome5 name={selectedHabit.icon} size={30} color="white" />
+                      <FontAwesome5 name={selectedHabit.icon} size={30} color="white" />
                   </View>
                   <Text style={styles.modalTitle} accessibilityRole="header">{selectedHabit.habitName}</Text>
                   
@@ -278,25 +332,25 @@ const HabitsScreen = ({ navigation }) => {
                   </View>
 
                   <View style={styles.modalButtons}>
-                     <TouchableOpacity 
+                      <TouchableOpacity 
                         style={[styles.actionBtn, {backgroundColor: theme.colors.primary}]} 
                         onPress={handleEdit}
                         accessible={true}
                         accessibilityLabel="Edytuj nawyk"
                         accessibilityRole="button"
-                     >
+                      >
                         <Text style={styles.btnText}>Edytuj</Text>
-                     </TouchableOpacity>
-                     
-                     <TouchableOpacity 
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
                         style={[styles.actionBtn, {backgroundColor: '#FF4500'}]} 
                         onPress={handleDelete}
                         accessible={true}
                         accessibilityLabel="Usuń nawyk"
                         accessibilityRole="button"
-                     >
+                      >
                         <Text style={styles.btnText}>Usuń</Text>
-                     </TouchableOpacity>
+                      </TouchableOpacity>
                   </View>
                 </>
               )}
@@ -308,6 +362,4 @@ const HabitsScreen = ({ navigation }) => {
     </View>
   );
 };
-
-
 export default HabitsScreen;

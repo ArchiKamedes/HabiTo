@@ -20,7 +20,7 @@ const SettingsScreen = () => {
         <Text style={styles.text}>Tryb Ciemny</Text>
         <Switch
             value={isDarkMode}
-            onValueChange={toggleTheme} // <-- Przełącznik!
+            onValueChange={toggleTheme} 
             thumbColor={isDarkMode ? theme.colors.primary : "#f4f3f4"}
             trackColor={{ false: "#767577", true: theme.colors.primary }}
         />

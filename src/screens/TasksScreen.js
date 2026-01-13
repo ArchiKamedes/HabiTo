@@ -17,37 +17,59 @@ const TasksScreen = ({ navigation }) => {
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString('pl-PL',{ day: 'numeric', month: 'numeric', year: 'numeric'});
   const user = auth.currentUser;
-  
   const [isFolderModalVisible, setIsFolderModalVisible] = useState(false);
   const [tasks, setTasks] = useState([]); 
-  
+  const [folders, setFolders] = useState([]);
+  const [selectedFolder, setSelectedFolder] = useState('all');
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
-
+  
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'users', user.uid, 'TaskFolders'), orderBy('createdAt', 'asc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const foldersData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setFolders(foldersData);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
   const todayTasks = useMemo(() => {
     return tasks.filter(task => {
+      let isToday = false;
       if (task.dueDate && typeof task.dueDate.toDate === 'function') {
         const taskDate = task.dueDate.toDate();
         taskDate.setHours(0, 0, 0, 0); 
-        return taskDate.getTime() === today.getTime();
+        isToday = taskDate.getTime() === today.getTime();
       }
-      return false; 
+      
+      const isFolderMatch = selectedFolder === 'all' || task.folder === selectedFolder;
+      
+      return isToday && isFolderMatch;
     });
-  }, [tasks]); 
+  }, [tasks, selectedFolder]); 
 
   const futureTasks = useMemo(() => {
     return tasks.filter(task => {
+      let isFuture = false;
       if (task.dueDate && typeof task.dueDate.toDate === 'function') {
         const taskDate = task.dueDate.toDate();
         taskDate.setHours(0, 0, 0, 0);
-        return taskDate.getTime() > today.getTime();
+        isFuture = taskDate.getTime() > today.getTime();
       }
-      return false;
+
+      const isFolderMatch = selectedFolder === 'all' || task.folder === selectedFolder;
+
+      return isFuture && isFolderMatch;
     });
-  }, [tasks]);
+  }, [tasks, selectedFolder]);
 
   useEffect(() => {
     if (!user) return; 
@@ -191,9 +213,42 @@ const TasksScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.foldersContainer}>
-          <View style={styles.foldersChoiceContainer}>
-            <Text style={styles.placeholderText}>Folders Choice</Text>
+          <View style={{ flex: 1, marginRight: 10 }}>
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={[{ id: 'all', name: 'Wszystkie', icon: 'layer-group' }, ...folders]}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingVertical: 5 }}
+              renderItem={({ item }) => {
+                const isSelected = selectedFolder === (item.id === 'all' ? 'all' : item.name);
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.folderAddShape,
+                      {
+                        marginRight: 10,
+                        backgroundColor: isSelected ? theme.colors.primary : theme.colors.card,
+                        width: 55, 
+                        borderRadius: 15
+                      }
+                    ]}
+                    onPress={() => setSelectedFolder(item.id === 'all' ? 'all' : item.name)}
+                    accessible={true}
+                    accessibilityLabel={`Filtruj po folderze: ${item.name}`}
+                    accessibilityRole="button"
+                  >
+                    <FontAwesome5 
+                      name={item.icon || 'folder'} 
+                      size={20} 
+                      color={isSelected ? '#fff' : theme.colors.text} 
+                    />
+                  </TouchableOpacity>
+                );
+              }}
+            />
           </View>
+          
           <Pressable 
             style={({ pressed }) => [styles.foldersAddContainer, {transform: [{ scale: pressed ? 0.85 : 1 }]}]} 
             onPress={() => setIsFolderModalVisible(true)}
@@ -222,7 +277,7 @@ const TasksScreen = ({ navigation }) => {
             keyExtractor={(item) => item.id}
             renderItem={renderTaskItem}
             ListEmptyComponent={
-              <Text style={styles.emptyListText} accessible={true}>Nie masz żadnych zadań na dziś!</Text>
+              <Text style={styles.emptyListText} accessible={true}>Nie masz żadnych zadań na dziś w tym folderze!</Text>
             }
             scrollEnabled={false}
           />

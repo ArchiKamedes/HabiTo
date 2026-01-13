@@ -8,9 +8,24 @@ export const getStyles = (theme) => StyleSheet.create({
   },
   foldersContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: theme.spacing.m,
+    height: 60,
+  },
+  folderItem: {
+    width: 50,      
+    height: 45,     
+    borderRadius: 15, 
+    backgroundColor: theme.colors.card, 
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10, 
+    borderWidth: 1,
+    borderColor: theme.colors.border || '#ccc', 
+  },
+  folderItemSelected: {
+    backgroundColor: theme.colors.primary, 
+    borderColor: theme.colors.primary,
   },
   dateRowContainer: {
     flexDirection: 'row',
@@ -39,24 +54,13 @@ export const getStyles = (theme) => StyleSheet.create({
     elevation: 5,
   },
   folderAddShape: {
-    width: 75,
+    width: 55,
     height: 45,
-    borderRadius: 20,
+    borderRadius: 15,
     backgroundColor: theme.colors.active, 
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
-  },
-  foldersChoiceContainer: {
-    flex: 1, 
-    padding: theme.spacing.m,
-    borderWidth: 1,
-    borderColor: theme.colors.text,
-    marginRight: theme.spacing.s,
-  },
-  placeholderText: {
-    color: theme.colors.text,  
-    fontSize: 12,
   },
   subtitleContainer: {
     padding: theme.spacing.s,

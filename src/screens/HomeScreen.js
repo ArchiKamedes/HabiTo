@@ -64,6 +64,25 @@ const HomeScreen = ({ navigation }) => {
     });
   }, [tasks]);
 
+  const todayHabits = useMemo(() => {
+  const dayOfWeek = today.getDay();
+    let filtered = habits.filter(habit => {
+      let isToday = false;
+      if (habit.repeatMode === 'Codziennie') isToday = true;
+      else if (habit.repeatMode === 'Wybierz dni' && habit.selectedWeekdays) {
+        isToday = habit.selectedWeekdays.includes(dayOfWeek);
+      }
+      return isToday;
+    });
+    filtered.sort((a, b) => {
+       const aDone = a.completedDates?.includes(todayString);
+       const bDone = b.completedDates?.includes(todayString);
+       if (aDone === bDone) return 0;
+       return aDone ? 1 : -1;
+    });
+    return filtered;
+  }, [habits, todayString]);
+
   const handleToggleComplete = async (taskId, currentStatus) => {
     if (!user) return;
     const taskDocRef = doc(db, 'users', user.uid, 'tasks', taskId);
@@ -189,25 +208,6 @@ const HomeScreen = ({ navigation }) => {
     setModalVisible(false);
     navigation.navigate('HabitAdd', { habitToEdit: selectedHabit });
   };
-
-  const todayHabits = useMemo(() => {
-    const dayOfWeek = today.getDay();
-    let filtered = habits.filter(habit => {
-      let isToday = false;
-      if (habit.repeatMode === 'Codziennie') isToday = true;
-      else if (habit.repeatMode === 'Wybierz dni' && habit.selectedWeekdays) {
-        isToday = habit.selectedWeekdays.includes(dayOfWeek);
-      }
-      return isToday;
-    });
-    filtered.sort((a, b) => {
-       const aDone = a.completedDates?.includes(todayString);
-       const bDone = b.completedDates?.includes(todayString);
-       if (aDone === bDone) return 0;
-       return aDone ? 1 : -1;
-    });
-    return filtered;
-  }, [habits, todayString]);
 
   const renderLeftActions = (progress, dragX) => (
     <View 
