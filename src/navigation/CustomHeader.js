@@ -9,30 +9,56 @@ const CustomHeader = ({ navigation }) => {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
-  const rootState = useNavigationState(state => state);
+  
+  // Bezpieczne pobieranie stanu nawigacji
+  const routes = useNavigationState(state => state?.routes || []);
+  const index = useNavigationState(state => state?.index || 0);
+  
+  const currentRoute = routes[index];
+  const currentRouteName = currentRoute?.name;
 
-  const rootRoute = rootState.routes[rootState.index];
-  const isSettingsActive = rootRoute.name === 'Settings';
+  const isSettingsActive = currentRouteName === 'Settings';
 
   let isHomeActive = false;
-  if (rootRoute.name === 'MainApp' && rootRoute.state) {
-    const tabState = rootRoute.state;
-    const activeTabName = tabState.routes[tabState.index].name;
-    isHomeActive = activeTabName === 'Home';
+  // POPRAWKA 1: Sprawdzamy 'MainTabs' zamiast 'MainApp'
+  if (currentRouteName === 'MainTabs') {
+    if (currentRoute.state) {
+        const tabIndex = currentRoute.state.index;
+        const activeTabName = currentRoute.state.routes[tabIndex].name;
+        isHomeActive = activeTabName === 'Home';
+    } else {
+        // Jeśli stan jest pusty, to znaczy że jesteśmy na ekranie startowym (Home)
+        isHomeActive = true; 
+    }
   }
 
-  const activeColor = theme.colors.active; 
-  const inactiveColor = theme.colors.inactive;
+  const activeColor = theme.colors.active || theme.colors.primary;
+  const inactiveColor = theme.colors.inactive || '#888';
   const iconSize = theme.isAccessibilityMode ? 45 : 26;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       
-      <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('MainApp', { screen: 'Home' })}>
-      <FontAwesome5 name="home" size={iconSize} color={isHomeActive ? activeColor : inactiveColor} />
+      <TouchableOpacity 
+        style={styles.iconButton} 
+        // POPRAWKA 2: Nawigujemy do 'MainTabs', a w nim do ekranu 'Home'
+        onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })} 
+        accessible={true}
+        accessibilityLabel="Strona główna"
+        accessibilityHint="Przenosi do ekranu głównego z listą nawyków"
+        accessibilityRole="button"
+      >
+        <FontAwesome5 name="home" size={iconSize} color={isHomeActive ? activeColor : inactiveColor} />
       </TouchableOpacity>
       
-      <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Settings')} >
+      <TouchableOpacity 
+        style={styles.iconButton} 
+        onPress={() => navigation.navigate('Settings')} 
+        accessible={true}
+        accessibilityLabel="Ustawienia"
+        accessibilityHint="Otwiera ekran ustawień aplikacji"
+        accessibilityRole="button"
+      >
         <Ionicons name="settings" size={iconSize} color={isSettingsActive ? activeColor : inactiveColor} />
       </TouchableOpacity>
     </View>
@@ -48,10 +74,8 @@ const getStyles = (theme) => {
         left: 0,
         right: 0,
         zIndex: 1, 
-
         backgroundColor: theme.colors.card,   
         borderColor: theme.colors.text,      
-
         height: 120, 
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
@@ -59,7 +83,6 @@ const getStyles = (theme) => {
         borderTopColor: 'transparent', 
         borderLeftWidth: 2,
         borderRightWidth: 2,
-
         flexDirection: 'row',
         justifyContent: 'space-between', 
         alignItems: 'flex-end', 
@@ -83,10 +106,8 @@ const getStyles = (theme) => {
       left: 0,
       right: 0,
       zIndex: 1, 
-
       backgroundColor: theme.colors.card,   
       borderColor: theme.colors.primary,      
-
       height: 110, 
       borderBottomLeftRadius: 24,
       borderBottomRightRadius: 24,
@@ -94,7 +115,6 @@ const getStyles = (theme) => {
       borderTopColor: 'transparent', 
       borderLeftWidth: 1,
       borderRightWidth: 1,
-
       flexDirection: 'row',
       justifyContent: 'space-between', 
       alignItems: 'flex-end', 

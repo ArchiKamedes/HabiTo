@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore'; // ZMIANA: używamy onSnapshot
 import { auth, db } from './src/firebaseConfig';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { ActivityIndicator, View } from 'react-native';
@@ -15,35 +15,51 @@ import HabitAddScreen from './src/screens/HabitAddScreen';
 
 const Stack = createNativeStackNavigator();
 
+// --- NAPRAWIONY KOMPONENT THEMESYNC ---
 const ThemeSync = ({ children }) => {
-  const { toggleAccessibilityMode } = useTheme();
-  const user = auth.currentUser;
+  // Pobieramy też aktualny stan motywu, żeby nie przełączać go w kółko
+  const { theme, toggleAccessibilityMode } = useTheme(); 
+  const [user, setUser] = useState(null);
 
+  // 1. Nasłuchujemy na logowanie użytkownika (naprawa problemu z null)
   useEffect(() => {
-    const fetchUserSettings = async () => {
-      if (user) {
-        try {
-          const docRef = doc(db, 'users', user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.isVisuallyImpaired) {
-              toggleAccessibilityMode(true);
-            } else {
-              toggleAccessibilityMode(false);
-            }
-          }
-        } catch (error) {
-          console.log(error);
-        }
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
+    return unsubscribe;
+  }, []);
+
+  // 2. Nasłuchujemy na zmiany w bazie danych (Real-time)
+  useEffect(() => {
+    if (!user) return;
+
+    // Używamy onSnapshot zamiast getDoc -> motyw zmieni się od razu po zmianie w ustawieniach
+    const unsubFirestore = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const shouldBeBlind = data.isVisuallyImpaired || false;
+        
+        // Sprawdzamy czy musimy zmienić tryb (zakładając, że w theme masz flagę isAccessibilityMode)
+        // Jeśli Twój Context nie udostępnia flagi, po prostu wywołaj toggle z parametrem
+        
+        // WAŻNE: Upewnij się, że Twoja funkcja toggleAccessibilityMode w ThemeContext
+        // potrafi przyjąć parametr true/false (np. setMode(value)).
+        // Jeśli działa tylko jako przełącznik (odwraca stan), ten kod trzeba lekko zmienić.
+        
+        // Zakładam tutaj, że zaktualizowałeś Context lub funkcja przyjmuje argument:
+        toggleAccessibilityMode(shouldBeBlind); 
       }
-    };
-    fetchUserSettings();
-  }, [user]);
+    }, (error) => {
+      console.log("Błąd pobierania ustawień motywu:", error);
+    });
+
+    return () => unsubFirestore();
+  }, [user]); 
 
   return children;
 };
 
+// --- RESZTA KODU BEZ ZMIAN (ROOTNAVIGATOR) ---
 const RootNavigator = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

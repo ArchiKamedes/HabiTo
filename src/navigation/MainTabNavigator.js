@@ -6,7 +6,7 @@ import TasksScreen from '../screens/TasksScreen';
 import HabitsScreen from '../screens/HabitsScreen';
 import PlantScreen from '../screens/PlantScreen';
 import CalendarScreen from '../screens/CalendarScreen';
-import CustomHeader from '../navigation/CustomHeader';
+import CustomHeader from './CustomHeader'; // Make sure the path is correct
 import HomeScreen from '../screens/HomeScreen';
 import { useTheme } from '../context/ThemeContext';
 
@@ -57,12 +57,51 @@ const MainTabNavigator = ({ navigation }) => {
         },
       })}
     >
-      <Tab.Screen name="Tasks" component={TasksScreen} options={{ title: 'Tasks' }} />
-      <Tab.Screen name="Habits" component={HabitsScreen} options={{ title: 'Habits' }} />
-      <Tab.Screen name="Plant" component={PlantScreen} options={{ title: 'Plant' }} />
-      <Tab.Screen name="Calendar" component={CalendarScreen} options={{ title: 'Calendar' }} />
+      <Tab.Screen 
+        name="Tasks" 
+        component={TasksScreen} 
+        options={{ 
+          title: 'Zadania',
+          // ADDED: Accessibility Label
+          tabBarAccessibilityLabel: 'Zakładka Zadania. Przełącz, aby zobaczyć listę zadań do zrobienia.',
+        }} 
+      />
+      <Tab.Screen 
+        name="Habits" 
+        component={HabitsScreen} 
+        options={{ 
+          title: 'Nawyki',
+          // ADDED: Accessibility Label
+          tabBarAccessibilityLabel: 'Zakładka Nawyki. Przełącz, aby śledzić swoje codzienne nawyki.',
+        }} 
+      />
+      <Tab.Screen 
+        name="Plant" 
+        component={PlantScreen} 
+        options={{ 
+          title: 'Roślina',
+          // ADDED: Accessibility Label
+          tabBarAccessibilityLabel: 'Zakładka Roślina. Przełącz, aby zobaczyć postęp swojej wirtualnej rośliny.',
+        }} 
+      />
+      <Tab.Screen 
+        name="Calendar" 
+        component={CalendarScreen} 
+        options={{ 
+          title: 'Kalendarz',
+          // ADDED: Accessibility Label
+          tabBarAccessibilityLabel: 'Zakładka Kalendarz. Przełącz, aby zobaczyć historię i zaplanowane aktywności.',
+        }} 
+      />
 
-      <Tab.Screen name="Home" component={HomeScreen} options={{tabBarButton: () => null, tabBarItemStyle: { display: 'none' }}} />
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen} 
+        options={{
+          tabBarButton: () => null, 
+          tabBarItemStyle: { display: 'none' }
+        }} 
+      />
     </Tab.Navigator>
     </View>
   );

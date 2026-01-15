@@ -123,13 +123,11 @@ const HabitsScreen = ({ navigation }) => {
     const itemForDisplay = { ...item, isCompleted: isCompletedToday };
 
     return (
-      // Changed TouchableOpacity to View to avoid nesting Pressables which can cause issues with accessibility and events
-      // The press logic is handled inside HabitItem component now via onPressDetail
       <View style={styles.itemWrapper}>
         <HabitItem 
           item={itemForDisplay}
           onToggle={() => handleToggleHabit(item)}
-          onPressDetail={() => openModal(item)} // Pass the openModal function here
+          onPressDetail={() => openModal(item)}
         />
       </View>
     );
@@ -154,6 +152,7 @@ const HabitsScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('HabitAdd')} 
             accessible={true}
             accessibilityLabel="Dodaj nowy nawyk"
+            accessibilityHint="Przenosi do ekranu tworzenia nowego nawyku"
             accessibilityRole="button"
           >
             <View style={styles.addShape}> 
@@ -181,6 +180,7 @@ const HabitsScreen = ({ navigation }) => {
                     onPress={() => setSelectedFolder(item.id === 'all' ? 'all' : item.name)}
                     accessible={true}
                     accessibilityLabel={`Filtruj po folderze: ${item.name}`}
+                    accessibilityHint="Filtruje listę nawyków, pokazując tylko te z wybranego folderu"
                     accessibilityRole="button"
                   >
                     <FontAwesome5 
@@ -198,6 +198,7 @@ const HabitsScreen = ({ navigation }) => {
             onPress={() => setIsFolderModalVisible(true)}
             accessible={true}
             accessibilityLabel="Dodaj nowy folder"
+            accessibilityHint="Otwiera okno dodawania foldera"
             accessibilityRole="button"
           >
             <View style={styles.folderAddShape}> 
@@ -211,7 +212,13 @@ const HabitsScreen = ({ navigation }) => {
             <Text style={styles.subtitleText} accessibilityRole="header">Dzisiejsze</Text>
           </View>
           <View style={styles.dateContainer}>
-            <Text style={styles.dateText} accessibilityLabel={`Data: ${formattedDate}`}>{formattedDate}</Text>
+            <Text 
+                style={styles.dateText} 
+                accessibilityLabel={`Data: ${formattedDate}`}
+                accessibilityHint="Aktualna data wyświetlana w formacie dzień miesiąc rok"
+            >
+                {formattedDate}
+            </Text>
           </View>
         </View>
 
@@ -251,8 +258,8 @@ const HabitsScreen = ({ navigation }) => {
           visible={modalVisible}
           habit={selectedHabit}
           onClose={() => setModalVisible(false)}
-          onEdit={handleEdit}     // Fixed prop name
-          onDelete={handleDelete} // Fixed prop name
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
 
       </ScrollView>
