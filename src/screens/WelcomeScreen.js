@@ -11,7 +11,7 @@ import { getStyles } from '../styles/WelcomeScreen.styles';
 
 const WelcomeScreen = () => {
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();r
+  const insets = useSafeAreaInsets();
   const styles = getStyles(theme);
 
   const handleLogout = () => {

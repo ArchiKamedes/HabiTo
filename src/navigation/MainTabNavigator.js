@@ -27,26 +27,32 @@ const MainTabNavigator = ({ navigation }) => {
         tabBarStyle: styles.myTabBar, 
         tabBarLabelStyle: styles.myLabel, 
         headerShown: false,
+        
+        tabBarShowLabel: !theme.isAccessibilityMode,
 
         tabBarActiveTintColor: theme.colors.active, 
-        tabBarInactiveTintColor: theme.colors.inactive, 
+        tabBarInactiveTintColor: theme.colors.inactive,
+
+        tabBarIconStyle: theme.isAccessibilityMode ? { width: 60, height: 60 } : undefined,
+        tabBarItemStyle: theme.isAccessibilityMode ? { justifyContent: 'center', alignItems: 'center' } : undefined,
         
         tabBarIcon: ({ focused, color, size }) => {
+          const customSize = theme.isAccessibilityMode ? 45 : size;
 
           if (route.name === 'Tasks') {
-            return <FontAwesome5 name='tasks' size={size} color={color} />;
+            return <FontAwesome5 name='tasks' size={customSize} color={color} />;
           } 
           
           else if (route.name === 'Habits') {
-            return <MaterialCommunityIcons name='head-heart-outline' size={size} color={color} />;
+            return <MaterialCommunityIcons name='head-heart-outline' size={customSize} color={color} />;
           } 
           
           else if (route.name === 'Plant') {
-            return <FontAwesome5 name='seedling' size={size} color={color} />;
+            return <FontAwesome5 name='seedling' size={customSize} color={color} />;
           } 
           
           else if (route.name === 'Calendar') {
-            return <FontAwesome5 name='calendar-alt' size={size} color={color} />;
+            return <FontAwesome5 name='calendar-alt' size={customSize} color={color} />;
           }
         },
       })}
@@ -62,30 +68,59 @@ const MainTabNavigator = ({ navigation }) => {
   );
 };
 
-const getStyles = (theme) => StyleSheet.create({
-  myTabBar: {
-    position: 'absolute', 
+const getStyles = (theme) => {
+  if (theme.isAccessibilityMode) {
+    return StyleSheet.create({
+      myTabBar: {
+        position: 'absolute', 
+        backgroundColor: theme.colors.card, 
+        
+        borderColor: theme.colors.text, 
+        borderTopColor: theme.colors.text,
 
-    backgroundColor: theme.colors.card, 
-    borderColor: theme.colors.primary, 
-    borderTopColor: theme.colors.primary,
+        height: 100, 
+        paddingBottom: 0, 
+        paddingTop: 0,
+        elevation: 0,
 
-    height: 85,
-    paddingBottom: 10,
-    elevation: 5,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderTopWidth: 6, 
 
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 4,
-
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-  },
-
-  myLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+        borderLeftWidth: 2,
+        borderRightWidth: 2,
+      },
+      myLabel: {
+        fontSize: 0, 
+      }
+    });
   }
-});
+
+  return StyleSheet.create({
+    myTabBar: {
+      position: 'absolute', 
+
+      backgroundColor: theme.colors.card, 
+      borderColor: theme.colors.primary, 
+      borderTopColor: theme.colors.primary,
+
+      height: 85,
+      paddingBottom: 10,
+      elevation: 5,
+
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      borderTopWidth: 4,
+
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+    },
+
+    myLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+    }
+  });
+};
 
 export default MainTabNavigator;

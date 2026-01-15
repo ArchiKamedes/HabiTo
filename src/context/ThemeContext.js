@@ -6,6 +6,15 @@ const spacing = {
   m: 16,
   l: 24,
   n: -10,
+  r: 16,
+};
+
+const accessibilitySpacing = {
+  s: 12,
+  m: 24,
+  l: 32,
+  n: 0,
+  r: 24,
 };
 
 const themes = {
@@ -21,6 +30,7 @@ const themes = {
       plus: '#F5F5F5',
       text2: '#F5F5F5',
       placeholderText: '#dfdfdfff',
+      border: '#E0E0E0', 
     },
     spacing,
   },
@@ -36,6 +46,7 @@ const themes = {
       plus: '#F5F5F5',
       text2: '#F5F5F5',
       placeholderText: '#dfdfdfff',
+      border: '#E0E0E0',
     },
     spacing,
   },
@@ -51,6 +62,7 @@ const themes = {
       plus: '#F5F5F5',
       text2: '#F5F5F5',
       placeholderText: '#dfdfdfff',
+      border: '#E0E0E0',
     },
     spacing,
   },
@@ -66,6 +78,7 @@ const themes = {
       plus: '#1b1b1cff',
       text2: '#F5F5F5',
       placeholderText: '#dfdfdfff',
+      border: '#333333',
     },
     spacing,
   },
@@ -81,6 +94,7 @@ const themes = {
       plus: '#1b1b1cff',
       text2: '#F5F5F5',
       placeholderText: '#dfdfdfff',
+      border: '#333333',
     },
     spacing,
   },
@@ -96,6 +110,7 @@ const themes = {
       plus: '#1b1b1cff',
       text2: '#F5F5F5',
       placeholderText: '#dfdfdfff',
+      border: '#333333',
     },
     spacing,
   },
@@ -105,8 +120,19 @@ const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const [themeName, setThemeName] = useState('light-blue');
+  
+  // 1. DODANY STAN: Tutaj przechowujemy informację czy tryb jest włączony
+  const [isAccessibilityMode, setIsAccessibilityMode] = useState(false);
 
-  const theme = themes[themeName];
+  const baseTheme = themes[themeName] || themes['light-blue'];
+
+  const theme = {
+    ...baseTheme,
+    // 2. PRZEKAZANIE DO MOTYWU: Dzięki temu MainTabNavigator to widzi
+    isAccessibilityMode, 
+    spacing: isAccessibilityMode ? accessibilitySpacing : baseTheme.spacing,
+    colors: baseTheme.colors,
+  };
 
   const setTheme = (name) => {
     if (themes[name]) {
@@ -114,8 +140,12 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
+  const toggleAccessibilityMode = (value) => {
+    setIsAccessibilityMode(value);
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, themeName }}>
+    <ThemeContext.Provider value={{ theme, setTheme, themeName, isAccessibilityMode, toggleAccessibilityMode }}>
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
       {children}
     </ThemeContext.Provider>

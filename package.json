@@ -7,7 +7,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "jest"
   },
   "dependencies": {
     "@expo-google-fonts/titillium-web": "^0.4.1",
@@ -46,10 +47,15 @@
   "private": true,
   "devDependencies": {
     "@react-native-community/eslint-config": "^3.2.0",
+    "@testing-library/react-native": "^13.3.3",
+    "babel-jest": "^30.2.0",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react-native-a11y": "^3.5.1",
-    "prettier": "^3.7.4"
+    "jest": "^30.2.0",
+    "jest-expo": "^54.0.16",
+    "prettier": "^3.7.4",
+    "react-test-renderer": "^19.1.0"
   }
 }

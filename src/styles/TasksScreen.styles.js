@@ -11,26 +11,60 @@ export const getStyles = (theme) => StyleSheet.create({
     alignItems: 'center', 
     marginBottom: theme.spacing.m,
   },
+  titleContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: theme.isAccessibilityMode ? 40 : 32,
+    fontFamily: 'TitilliumWeb_400Regular', // Zmiana na lżejszą czcionkę jak w nawykach
+    color: theme.colors.text,
+    fontWeight: theme.isAccessibilityMode ? 'bold' : 'normal',
+  },
+  addButtonContainer: {
+    padding: theme.spacing.s,
+  },
+  addShape:{
+    width: theme.isAccessibilityMode ? 65 : 50, 
+    height: theme.isAccessibilityMode ? 65 : 50,
+    borderRadius: theme.isAccessibilityMode ? 32.5 : 25,
+    backgroundColor: theme.colors.primary, // Zmiana na primary (jak w nawykach)
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    borderWidth: theme.isAccessibilityMode ? 3 : 0,
+    borderColor: theme.colors.text,
+  },
   foldersContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: theme.spacing.m,
-    height: 60, 
+    height: theme.isAccessibilityMode ? 100 : 60, 
   },
   folderItem: {
-    width: 50,      
-    height: 45,     
+    width: theme.isAccessibilityMode ? 110 : 70, 
+    height: theme.isAccessibilityMode ? 80 : 45,     
     borderRadius: 15, 
     backgroundColor: theme.colors.card, 
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10, 
-    borderWidth: 1,
-    borderColor: theme.colors.border || '#ccc', 
+    borderWidth: theme.isAccessibilityMode ? 4 : 1,
+    borderColor: theme.isAccessibilityMode ? theme.colors.text : (theme.colors.border || '#ccc'), 
   },
   folderItemSelected: {
     backgroundColor: theme.colors.primary, 
-    borderColor: theme.colors.primary,
+    borderColor: theme.isAccessibilityMode ? theme.colors.text : theme.colors.primary,
+  },
+  folderAddShape:{
+    width: theme.isAccessibilityMode ? 110 : 70, 
+    height: theme.isAccessibilityMode ? 80 : 45,
+    borderRadius: 15,
+    backgroundColor: theme.colors.active, // Zmiana na active (jak w nawykach)
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    borderWidth: theme.isAccessibilityMode ? 4 : 0,
+    borderColor: theme.colors.text, 
   },
   daysContainer: {
     flexDirection: 'row',
@@ -51,6 +85,25 @@ export const getStyles = (theme) => StyleSheet.create({
     flex: 1, 
     padding: theme.spacing.s,
     marginLeft: theme.spacing.s,
+  },
+  dateRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  subtitleContainer: {
+    marginRight: 15,
+  },
+  subtitleText: {
+    fontSize: theme.isAccessibilityMode ? 28 : 22,
+    color: theme.colors.text,
+    fontFamily: 'TitilliumWeb_400Regular', // Ujednolicenie czcionki
+  },
+  dateContainer: {
+    backgroundColor: theme.colors.card,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   tasksTodayContainer: {
     padding: theme.spacing.m,
@@ -75,24 +128,6 @@ export const getStyles = (theme) => StyleSheet.create({
     marginTop: theme.spacing.n,
     elevation: 3,
   },
-  taskAddShape:{
-    width: 45,
-    height: 45,
-    borderRadius: 25,
-    backgroundColor: theme.colors.active,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 10,
-  },
-  folderAddShape:{
-    width: 55,
-    height: 45,
-    borderRadius: 15,
-    backgroundColor: theme.colors.active,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 10,
-  },
   titleTaskText:{
     color: theme.colors.text, 
     fontSize: 32,
@@ -105,15 +140,26 @@ export const getStyles = (theme) => StyleSheet.create({
   },
   dateText:{
     color: theme.colors.text, 
-    fontSize: 22,
+    fontSize: theme.isAccessibilityMode ? 24 : 22, // Powiększone, by pasowało do nawyków
     fontFamily: 'TitilliumWeb_700Bold', 
   },
   emptyListText: {
-    color: theme.colors.inactive,
+    color: theme.isAccessibilityMode ? theme.colors.text : theme.colors.inactive,
     textAlign: 'center',
     marginTop: 20,
-    fontSize: 16,
+    fontSize: theme.isAccessibilityMode ? 22 : 16,
     fontFamily: 'TitilliumWeb_400Regular',
+    fontWeight: theme.isAccessibilityMode ? 'bold' : 'normal',
+  },
+  emptyText: {
+    color: theme.isAccessibilityMode ? theme.colors.text : theme.colors.inactive,
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: theme.isAccessibilityMode ? 22 : 16,
+    fontFamily: 'TitilliumWeb_400Regular',
+  },
+  listContainer: {
+    minHeight: 50,
   },
   swipeContainer: {
     borderRadius: 12,
@@ -128,51 +174,7 @@ export const getStyles = (theme) => StyleSheet.create({
     width: '100%',
     height: '100%', 
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: theme.colors.card,
-    borderRadius: 20,
-    padding: 25,
-    alignItems: 'center',
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 20,
-    color: theme.colors.text,
-    fontFamily: 'TitilliumWeb_700Bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  modalButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 10,
-  },
-  modalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    width: '45%',
-  },
-  editButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  deleteButton: {
-    backgroundColor: '#FF4500',
-  },
-  modalButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    marginLeft: 5,
-  },
+  itemWrapper: {
+    marginBottom: 5,
+  }
 });

@@ -9,6 +9,7 @@ import { db, auth } from '../firebaseConfig';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { getStyles } from '../styles/TasksScreen.styles';
+import TaskDetailModal from '../components/TaskDetailModal';
 
 const TasksScreen = ({ navigation }) => { 
   const insets = useSafeAreaInsets();
@@ -124,8 +125,8 @@ const TasksScreen = ({ navigation }) => {
   };
 
   const openTaskModal = (task) => {
-    setSelectedTask(task);
-    setModalVisible(true);
+      setSelectedTask(task);
+      setModalVisible(true);
   };
 
   const handleEditTask = () => {
@@ -181,6 +182,7 @@ const TasksScreen = ({ navigation }) => {
           item={item}
           onToggleComplete={handleToggleComplete}
           onToggleSubtask={handleToggleSubtask}
+          onPressDetail={() => openTaskModal(item)}
         />
       </TouchableOpacity>
     </Swipeable>
@@ -301,50 +303,13 @@ const TasksScreen = ({ navigation }) => {
 
         <AddFolderModal visible={isFolderModalVisible} onClose={() => setIsFolderModalVisible(false)} defaultFolderType="task"/>
 
-        <Modal animationType="fade" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
-          <Pressable 
-            style={styles.modalOverlay} 
-            onPress={() => setModalVisible(false)}
-            accessible={true}
-            accessibilityLabel="Zamknij okno opcji zadania"
-            accessibilityRole="button"
-          >
-            <View 
-              style={styles.modalContent}
-              accessible={true}
-              accessibilityViewIsModal={true}
-            >
-              {selectedTask && (
-                <>
-                  <Text style={styles.modalTitle} accessibilityRole="header">{selectedTask.name || selectedTask.text || "Bez nazwy"}</Text>
-                  
-                  <View style={styles.modalButtonsContainer}>
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.editButton]} 
-                      onPress={handleEditTask}
-                      accessible={true}
-                      accessibilityLabel="Edytuj zadanie"
-                      accessibilityRole="button"
-                    >
-                      <Ionicons name="pencil" size={20} color="white" />
-                      <Text style={styles.modalButtonText}>Edytuj</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.deleteButton]} 
-                      onPress={() => handleDeleteTask(null)}
-                      accessible={true}
-                      accessibilityLabel="Usuń zadanie"
-                      accessibilityRole="button"
-                    >
-                      <Ionicons name="trash" size={20} color="white" />
-                      <Text style={styles.modalButtonText}>Usuń</Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
-            </View>
-          </Pressable>
-        </Modal>
+       <TaskDetailModal 
+          visible={modalVisible}
+          task={selectedTask}
+          onClose={() => setModalVisible(false)}
+          onEdit={handleEditTask}    
+          onDelete={handleDeleteTask} 
+        />
 
       </ScrollView> 
     </GestureHandlerRootView>

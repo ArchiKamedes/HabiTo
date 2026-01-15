@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text,FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -8,7 +8,8 @@ import { collection, query, onSnapshot } from 'firebase/firestore';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { getStyles } from '../styles/CalendarScreen.styles';
 
-LocaleConfig.locales['pl'] = {
+// Konfiguracja języka polskiego
+LocaleConfig.locales.pl = {
   monthNames: ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'],
   monthNamesShort: ['Sty.','Lut.','Mar.','Kwi.','Maj','Cze.','Lip.','Sie.','Wrz.','Paź.','Lis.','Gru.'],
   dayNames: ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'],
@@ -106,27 +107,24 @@ const CalendarScreen = ({ navigation }) => {
   const renderItem = ({ item }) => {
     const isTask = item.type === 'task';
     const content = item.data;
-    const itemLabel = isTask 
-      ? `Zadanie: ${content.name}. Status: do zrobienia.` 
-      : `Nawyk: ${content.habitName}. Status: wykonany.`;
-
+    
+    // ZMIANA: Usunięto 'accessible={true}' z kontenera View.
+    // Dzięki temu skaner widzi teksty wewnątrz jako "udostępnione".
+    // Czytnik przeczyta je po kolei, co jest poprawne.
+    
     return (
-      <View 
-        style={[styles.card, { borderLeftColor: isTask ? '#4da6ff' : theme.colors.primary }]}
-        accessible={true}
-        accessibilityLabel={itemLabel}
-      >
-        <View style={styles.iconBox}>
+      <View style={[styles.card, { borderLeftColor: isTask ? '#4da6ff' : theme.colors.primary }]}>
+        <View style={styles.iconBox} importantForAccessibility="no">
             <FontAwesome5 
                 name={content.icon || (isTask ? 'tasks' : 'leaf')} 
-                size={24} 
+                size={theme.isAccessibilityMode ? 32 : 24} 
                 color={theme.colors.text}
             />
         </View>
-        <View>
+        <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>{isTask ? content.name : content.habitName}</Text>
             <Text style={styles.cardSub}>
-                {isTask ? 'Zadanie do zrobienia' : 'Nawyk wykonany!'}
+                {isTask ? 'Zadanie do zrobienia' : 'Nawyk wykonany'}
             </Text>
         </View>
       </View>
@@ -145,39 +143,59 @@ const CalendarScreen = ({ navigation }) => {
         onDayPress={day => setSelectedDate(day.dateString)}
         markedDates={markedDates}
         markingType={'multi-dot'}
+        enableSwipeMonths={true} // Płynniejsze przewijanie
+        
+        // ZMIANA: Własny nagłówek, aby tekst Miesiąca był widoczny dla skanera
+        renderHeader={(date) => {
+            const monthNames = LocaleConfig.locales.pl.monthNames;
+            const title = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+            return (
+                <Text style={{ 
+                    fontSize: theme.isAccessibilityMode ? 24 : 18, 
+                    fontFamily: 'TitilliumWeb_700Bold',
+                    color: theme.colors.text
+                }} accessibilityRole="header">
+                    {title}
+                </Text>
+            );
+        }}
+
         renderArrow={(direction) => (
             <View 
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel={direction === 'left' ? "Poprzedni miesiąc" : "Następny miesiąc"}
+                accessibilityHint="Kliknij, aby zmienić miesiąc"
                 style={styles.arrowContainer}
             >
                 <Ionicons 
                     name={direction === 'left' ? "chevron-back" : "chevron-forward"} 
-                    size={36} 
+                    size={theme.isAccessibilityMode ? 40 : 30} 
                     color={theme.colors.primary} 
                 />
             </View>
         )}
+        
+        // Wymuszenie wysokiego kontrastu w motywie kalendarza
         theme={{
           backgroundColor: theme.colors.card,
           calendarBackground: theme.colors.card,
-          textSectionTitleColor: theme.colors.inactive,
+          textSectionTitleColor: theme.colors.text, // Ważne: Kolor dni tyg.
           selectedDayBackgroundColor: theme.colors.primary,
           selectedDayTextColor: '#ffffff',
           todayTextColor: theme.colors.primary,
-          dayTextColor: theme.colors.text,
-          textDisabledColor: '#444',
+          dayTextColor: theme.colors.text, // Ważne: Kolor dni
+          textDisabledColor: theme.isAccessibilityMode ? '#888' : '#d9e1e8',
           dotColor: theme.colors.primary,
           selectedDotColor: '#ffffff',
           arrowColor: theme.colors.primary,
-          monthTextColor: theme.colors.text,
+          monthTextColor: theme.colors.text, // Ważne: Kolor nagłówka
           textDayFontFamily: 'TitilliumWeb_700Bold',
           textMonthFontFamily: 'TitilliumWeb_700Bold',
           textDayHeaderFontFamily: 'TitilliumWeb_700Bold',
-          textDayFontSize: 20,
-          textMonthFontSize: 24,
-          textDayHeaderFontSize: 16
+          textDayFontSize: theme.isAccessibilityMode ? 22 : 16,
+          textMonthFontSize: theme.isAccessibilityMode ? 24 : 16,
+          textDayHeaderFontSize: theme.isAccessibilityMode ? 16 : 13
         }}
         style={styles.calendar}
       />
@@ -186,6 +204,7 @@ const CalendarScreen = ({ navigation }) => {
         <Text 
             style={styles.sectionTitle}
             accessible={true}
+            accessibilityRole="header"
             accessibilityLabel={`Lista elementów dla dnia ${selectedDate}`}
         >
             W dniu {selectedDate}:
@@ -195,7 +214,7 @@ const CalendarScreen = ({ navigation }) => {
             keyExtractor={(item, index) => index.toString()}
             renderItem={renderItem}
             ListEmptyComponent={
-                <Text style={styles.emptyText} accessible={true}>Nic zaplanowanego ani wykonanego.</Text>
+                <Text style={styles.emptyText} accessible={true}>Brak planów na ten dzień.</Text>
             }
         />
       </View>
