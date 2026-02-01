@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Platform, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Platform, ScrollView, Pressable, Alert, Image, Modal } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -20,6 +20,11 @@ const WEEKDAYS = [
   { short: 'Pt', long: 'Piątek', id: 5 },
   { short: 'Sb', long: 'Sobota', id: 6 },
   { short: 'Nd', long: 'Niedziela', id: 0 },
+];
+
+const AVAILABLE_PLANTS = [
+  { id: 'cactus', name: 'Kaktus', source: require('../assets/plant00_prof.png') },
+  { id: 'monstera', name: 'Monstera', source: require('../assets/plant00_prof.png') }, 
 ];
 
 const HabitAddScreen = ({ navigation, route }) => {
@@ -53,6 +58,9 @@ const HabitAddScreen = ({ navigation, route }) => {
   const [date, setDate] = useState(new Date());
   const [isColorModalVisible, setIsColorModalVisible] = useState(false);
 
+  const [selectedPlantType, setSelectedPlantType] = useState('cactus');
+  const [isPlantPickerVisible, setIsPlantPickerVisible] = useState(false);
+
   useEffect(() => {
     if (isEditing && habitToEdit) {
       setHabitName(habitToEdit.habitName || '');
@@ -64,6 +72,7 @@ const HabitAddScreen = ({ navigation, route }) => {
       setRepeatValueX(String(habitToEdit.repeatValueX || '3'));
       setSelectedWeekdays(habitToEdit.selectedWeekdays || []);
       setTimeMode(habitToEdit.timeMode || 'Taka sama godzina');
+      setSelectedPlantType(habitToEdit.plantType || 'cactus');
 
       if (habitToEdit.notificationTimes) {
         if (Array.isArray(habitToEdit.notificationTimes)) {
@@ -215,6 +224,9 @@ const HabitAddScreen = ({ navigation, route }) => {
       timeMode,
       notificationTimes: timeMode === 'Taka sama godzina' ? sameTimes : differentTimes,
       userId: user.uid,
+      plantType: selectedPlantType,
+      growthPoints: isEditing ? (habitToEdit.growthPoints || 0) : 0,
+      lastCompletedDate: isEditing ? (habitToEdit.lastCompletedDate || null) : null,
       ...(isEditing ? {} : {
           completedDates: [],
           skippedDates: [],
@@ -247,8 +259,9 @@ const HabitAddScreen = ({ navigation, route }) => {
         style={styles.timeButton} 
         onPress={() => handleShowTimePicker({ day: dayId, index: index })}
         accessible={true}
-        accessibilityLabel={`Wybierz godzinę ${index + 1}. Aktualnie: ${times[index] ? times[index].toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : 'brak'}`}
         accessibilityRole="button"
+        accessibilityLabel={`Godzina ${index + 1}`}
+        accessibilityHint={`Aktualnie ustawiona godzina to: ${times[index] ? times[index].toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : 'brak'}. Kliknij, aby zmienić.`}
       >
         <Text style={styles.timeText}>
           {times[index] ? times[index].toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : 'Wybierz'}
@@ -257,10 +270,20 @@ const HabitAddScreen = ({ navigation, route }) => {
     ));
   };
 
+  const getSelectedPlantImage = () => {
+    const plant = AVAILABLE_PLANTS.find(p => p.id === selectedPlantType);
+    return plant ? plant.source : AVAILABLE_PLANTS[0].source;
+  };
+
+  const getSelectedPlantName = () => {
+      const plant = AVAILABLE_PLANTS.find(p => p.id === selectedPlantType);
+      return plant ? plant.name : 'Kaktus';
+  };
+
   return (
-    <ScrollView style={[styles.screenContainer]}>
+    <ScrollView style={styles.screenContainer}>
       
-      <View style={styles.header}>
+      <View style={styles.header} accessible={true} accessibilityRole="header">
         <TextInput
           style={styles.titleInput}
           placeholder="Nazwa Nawyku"
@@ -268,13 +291,14 @@ const HabitAddScreen = ({ navigation, route }) => {
           value={habitName}
           onChangeText={setHabitName}
           accessible={true}
-          accessibilityLabel="Pole tekstowe nazwy nawyku"
-          accessibilityHint="Wpisz tutaj nazwę nawyku"
+          accessibilityLabel="Nazwa nawyku"
+          accessibilityHint="Wpisz nazwę nowego nawyku"
         />
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
           accessible={true}
-          accessibilityLabel="Anuluj i wróć"
+          accessibilityLabel="Anuluj"
+          accessibilityHint="Anuluje tworzenie nawyku i wraca do poprzedniego ekranu"
           accessibilityRole="button"
         >
           <Ionicons name="close-circle" size={30} color="#FFFFFF" />
@@ -287,10 +311,11 @@ const HabitAddScreen = ({ navigation, route }) => {
           style={styles.row}
           onPress={() => setIconPickerVisible(true)}
           accessible={true}
-          accessibilityLabel={`Ikona nawyku: ${icon}`}
+          accessibilityLabel="Zmień ikonę nawyku"
+          accessibilityHint={`Aktualnie wybrana ikona to: ${icon}. Kliknij, aby otworzyć listę ikon.`}
           accessibilityRole="button"
         >
-          <View style={[styles.iconCircle, { backgroundColor: theme.colors.border }]}>
+          <View style={styles.iconCircle}>
             <FontAwesome5 name={icon} size={24} color={theme.colors.text} />
           </View>
           <Text style={styles.label}>Ikona</Text>
@@ -301,8 +326,8 @@ const HabitAddScreen = ({ navigation, route }) => {
           style={styles.row} 
           onPress={() => setIsColorModalVisible(true)}
           accessible={true}
-          accessibilityLabel={`Kolor nawyku. Aktualny kolor to ${color}`}
-          accessibilityHint="Kliknij, aby zmienić kolor"
+          accessibilityLabel="Zmień kolor nawyku"
+          accessibilityHint={`Aktualnie wybrany kolor to: ${color}. Kliknij, aby otworzyć paletę kolorów.`}
           accessibilityRole="button"
         >
           <View style={[styles.colorCircle, { backgroundColor: color }]} />
@@ -310,12 +335,31 @@ const HabitAddScreen = ({ navigation, route }) => {
           <Text style={styles.valueText}>Zmień</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity 
+          style={styles.row} 
+          onPress={() => setIsPlantPickerVisible(true)}
+          accessible={true}
+          accessibilityLabel="Zmień wirtualną roślinę"
+          accessibilityHint={`Aktualnie wybrana roślina to: ${getSelectedPlantName()}. Kliknij, aby zmienić.`}
+          accessibilityRole="button"
+        >
+           <View style={[styles.iconCircle, { overflow: 'hidden' }]}>
+            <Image 
+                source={getSelectedPlantImage()} 
+                style={{ width: 30, height: 30 }} 
+                resizeMode="contain" 
+            />
+          </View>
+          <Text style={styles.label}>Roślina</Text>
+          <Text style={styles.valueText}>{getSelectedPlantName()}</Text>
+        </TouchableOpacity>
+
         <ModalDropdown
           options={availableFolders.length > 0 ? availableFolders : ['Brak folderów']}
           defaultIndex={0}
           defaultValue={folder || (availableFolders.length > 0 ? availableFolders[0] : 'Brak folderów')}
           onSelect={(index, value) => {
-             if (availableFolders.length > 0) setFolder(value);
+              if (availableFolders.length > 0) setFolder(value);
           }}
           dropdownStyle={styles.dropdownList}
           dropdownTextStyle={styles.dropdownText}
@@ -325,7 +369,8 @@ const HabitAddScreen = ({ navigation, route }) => {
           <View 
             style={styles.row}
             accessible={true}
-            accessibilityLabel={`Folder: ${folder || 'Brak'}. Kliknij aby zmienić.`}
+            accessibilityLabel="Wybierz folder"
+            accessibilityHint={`Aktualnie wybrany folder to: ${folder || 'Brak'}. Kliknij, aby rozwinąć listę folderów.`}
             accessibilityRole="button"
           > 
             <Ionicons name="folder-outline" size={24} color={theme.colors.text} style={styles.icon} />
@@ -338,11 +383,15 @@ const HabitAddScreen = ({ navigation, route }) => {
             )}
 
             <TouchableOpacity 
-                style={{marginLeft: 10}} 
+                style={{marginLeft: theme.spacing.s}} 
                 onPress={(e) => {
                     e.stopPropagation();
                     setIsFolderModalVisible(true);
                 }}
+                accessible={true}
+                accessibilityLabel="Utwórz nowy folder"
+                accessibilityHint="Otwiera okno tworzenia nowego folderu"
+                accessibilityRole="button"
             >
                 <Ionicons name="add-circle" size={26} color={theme.colors.primary} />
             </TouchableOpacity>
@@ -360,6 +409,7 @@ const HabitAddScreen = ({ navigation, route }) => {
             maxLength={2}
             accessible={true}
             accessibilityLabel="Liczba powtórzeń w ciągu dnia"
+            accessibilityHint="Wpisz ile razy dziennie chcesz wykonywać ten nawyk"
           />
           <Text style={styles.labelSuffix} accessible={true}>razy w ciągu dnia</Text>
         </View>
@@ -376,8 +426,8 @@ const HabitAddScreen = ({ navigation, route }) => {
           <View 
             style={styles.row}
             accessible={true}
-            accessibilityLabel={`Częstotliwość powtarzania: ${repeatMode}`}
-            accessibilityHint="Kliknij, aby zmienić tryb powtarzania"
+            accessibilityLabel="Tryb powtarzania"
+            accessibilityHint={`Aktualny tryb: ${repeatMode}. Kliknij, aby zmienić częstotliwość powtarzania.`}
             accessibilityRole="button"
           >
             <Ionicons name="repeat-outline" size={24} color={theme.colors.text} style={styles.icon} />
@@ -396,7 +446,8 @@ const HabitAddScreen = ({ navigation, route }) => {
               keyboardType="numeric"
               maxLength={2}
               accessible={true}
-              accessibilityLabel="Wpisz liczbę dni odstępu"
+              accessibilityLabel="Odstęp w dniach"
+              accessibilityHint="Wpisz co ile dni nawyk ma być aktywny"
             />
           </View>
         )}
@@ -411,8 +462,9 @@ const HabitAddScreen = ({ navigation, route }) => {
                 ]}
                 onPress={() => toggleWeekday(day.id)}
                 accessible={true}
-                accessibilityLabel={`${day.long}, ${selectedWeekdays.includes(day.id) ? 'wybrano' : 'nie wybrano'}`}
                 accessibilityRole="button"
+                accessibilityLabel={day.long}
+                accessibilityHint={selectedWeekdays.includes(day.id) ? "Dzień wybrany. Kliknij, aby odznaczyć." : "Dzień niewybrany. Kliknij, aby zaznaczyć."}
               >
                 <Text style={[
                   styles.dayText,
@@ -438,7 +490,8 @@ const HabitAddScreen = ({ navigation, route }) => {
             <Text 
               style={styles.valueText}
               accessible={true}
-              accessibilityLabel={`Tryb godzin: ${timeMode}`}
+              accessibilityLabel="Tryb godzin powiadomień"
+              accessibilityHint={`Aktualny tryb: ${timeMode}. Kliknij, aby zmienić.`}
               accessibilityRole="button"
             >
               {timeMode}
@@ -466,23 +519,14 @@ const HabitAddScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        <TouchableOpacity 
-          style={styles.row}
-          accessible={true}
-          accessibilityLabel="Wybierz roślinę"
-          accessibilityRole="button"
-        >
-          <Ionicons name="leaf-outline" size={24} color={theme.colors.text} style={styles.icon} />
-          <Text style={styles.label}>Wybierz Roślinę</Text>
-        </TouchableOpacity>
-
       </View>
 
       <Pressable 
         style={styles.createButton} 
         onPress={handleSaveHabit}
         accessible={true}
-        accessibilityLabel={isEditing ? "Zapisz zmiany" : "Utwórz nawyk"}
+        accessibilityLabel={isEditing ? "Zapisz zmiany w nawyku" : "Utwórz nowy nawyk"}
+        accessibilityHint="Zapisuje wprowadzone dane i wraca do ekranu głównego"
         accessibilityRole="button"
       >
         <Text style={styles.createButtonText}>{isEditing ? "Zapisz" : "Utwórz"}</Text>
@@ -555,6 +599,58 @@ const HabitAddScreen = ({ navigation, route }) => {
         onSelectIcon={(newIcon) => setIcon(newIcon)}
         currentIcon={icon}
       />
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isPlantPickerVisible}
+        onRequestClose={() => setIsPlantPickerVisible(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View 
+            style={{ width: '80%', backgroundColor: theme.colors.card, borderRadius: 20, padding: 20, alignItems: 'center' }}
+            accessible={true}
+            accessibilityViewIsModal={true}
+          >
+            <Text 
+              style={{ fontSize: 18, fontWeight: 'bold', color: theme.colors.text, marginBottom: 20 }}
+              accessibilityRole="header"
+            >
+              Wybierz roślinę
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 20 }}>
+              {AVAILABLE_PLANTS.map((plant) => (
+                <TouchableOpacity
+                  key={plant.id}
+                  style={{ alignItems: 'center', padding: 10, borderWidth: 2, borderRadius: 10, borderColor: selectedPlantType === plant.id ? theme.colors.primary : 'transparent' }}
+                  onPress={() => {
+                    setSelectedPlantType(plant.id);
+                    setIsPlantPickerVisible(false);
+                  }}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Wybierz roślinę: ${plant.name}`}
+                  accessibilityHint={selectedPlantType === plant.id ? "Ta roślina jest aktualnie wybrana." : "Kliknij, aby wybrać tę roślinę."}
+                >
+                  <Image source={plant.source} style={{ width: 60, height: 60, marginBottom: 5 }} resizeMode="contain" />
+                  <Text style={{ color: theme.colors.text }}>{plant.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Pressable
+              style={{ marginTop: 20, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: theme.colors.primary, borderRadius: 10 }}
+              onPress={() => setIsPlantPickerVisible(false)}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Zamknij"
+              accessibilityHint="Zamyka okno wyboru rośliny bez zmian"
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Zamknij</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
     </ScrollView>
   );
 };

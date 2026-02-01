@@ -22,12 +22,7 @@ export const getStyles = (theme) => StyleSheet.create({
   },
   bottomBar: {
     backgroundColor: theme.colors.primary, 
-    height:30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.m,
-    paddingVertical: theme.spacing.s,
+    height: 30,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopColor: 'transparent', 
